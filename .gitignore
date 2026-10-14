@@ -1,0 +1,20 @@
+bin/
+obj/
+dist/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Lokale Testdaten (CLIPSEC_DATA_DIR) niemals einchecken
+clipsec-test*/
+vault.json
+history.dat
+history.dat.corrupt
+
+# Webseite: lokale Downloads (kommen aus GitHub Releases bzw. dem Unraid-Volume)
+website/downloads/
+
+# Lokale Claude-Einstellungen
+.claude/settings.local.json

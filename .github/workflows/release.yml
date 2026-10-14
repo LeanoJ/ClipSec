@@ -1,0 +1,43 @@
+name: Release
+
+# Neues Release:  git tag v1.2.0 && git push origin v1.2.0
+on:
+  push:
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Tests
+        shell: pwsh
+        run: |
+          $env:CLIPSEC_DATA_DIR = Join-Path $env:RUNNER_TEMP 'clipsec-test'
+          dotnet run --project ClipSec.Tests -c Release
+
+      - name: Setup bauen
+        shell: pwsh
+        run: ./publish.ps1 -Version "${{ github.ref_name }}"
+
+      - name: GitHub-Release anlegen
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ClipSec ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            **Download:** `ClipSec-Setup.exe` – Windows 10/11 (x64), keine Adminrechte nötig.
+            Prüfsumme siehe `SHA256SUMS.txt` (`Get-FileHash .\ClipSec-Setup.exe`).
+            Änderungen: siehe [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md).
+          files: |
+            dist/ClipSec-Setup.exe
+            dist/SHA256SUMS.txt
+            dist/latest.json

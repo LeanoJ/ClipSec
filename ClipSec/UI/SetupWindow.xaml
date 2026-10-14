@@ -1,0 +1,81 @@
+<Window x:Class="ClipSec.UI.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ClipSec einrichten" Width="500" Height="720"
+        Style="{StaticResource WindowBase}"
+        ResizeMode="CanMinimize" WindowStartupLocation="CenterScreen"
+        Icon="pack://application:,,,/ClipSec;component/Assets/clipsec.ico">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="28,24,28,12">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="pack://application:,,,/ClipSec;component/Assets/clipsec.ico" Width="36" Height="36" />
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Willkommen bei ClipSec" FontSize="20" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource Secondary}" Text="Deine Zwischenablage – verschlüsselt und gesperrt." />
+                    </StackPanel>
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource Heading}" Text="Master-Passwort" />
+                <TextBlock Style="{StaticResource Secondary}" Margin="0,0,0,10"
+                           Text="Damit wird dein Verlauf verschlüsselt. Ohne dieses Passwort kann niemand – auch du nicht – den Verlauf lesen. Es gibt keine Wiederherstellung." />
+                <TextBlock Text="Passwort (mind. 8 Zeichen)" Margin="0,0,0,4" />
+                <PasswordBox x:Name="PasswordBox1" />
+                <TextBlock Text="Passwort wiederholen" Margin="0,10,0,4" />
+                <PasswordBox x:Name="PasswordBox2" />
+
+                <TextBlock Style="{StaticResource Heading}" Text="Automatisch sperren" />
+                <TextBlock Style="{StaticResource Secondary}" Margin="0,0,0,10"
+                           Text="Nach dieser Zeit ohne Nutzung von ClipSec wird wieder gesperrt. Jede Nutzung startet den Timer neu." />
+                <ListBox x:Name="TimeoutChips" Style="{StaticResource ChipList}">
+                    <ListBoxItem Tag="0">Sofort</ListBoxItem>
+                    <ListBoxItem Tag="1">1 Min.</ListBoxItem>
+                    <ListBoxItem Tag="2">2 Min.</ListBoxItem>
+                    <ListBoxItem Tag="5">5 Min.</ListBoxItem>
+                    <ListBoxItem Tag="10">10 Min.</ListBoxItem>
+                    <ListBoxItem Tag="15">15 Min.</ListBoxItem>
+                    <ListBoxItem Tag="30">30 Min.</ListBoxItem>
+                    <ListBoxItem Tag="60">60 Min.</ListBoxItem>
+                </ListBox>
+
+                <TextBlock Style="{StaticResource Heading}" Text="Kurz-PIN (optional)" />
+                <CheckBox x:Name="PinCheck" Checked="PinCheck_Changed" Unchecked="PinCheck_Changed">
+                    <TextBlock TextWrapping="Wrap"
+                               Text="Nach der ersten Passworteingabe mit einer kurzen PIN entsperren – gültig bis zum nächsten Neustart oder Abmelden." />
+                </CheckBox>
+                <StackPanel x:Name="PinPanel" Margin="28,6,0,0" Visibility="Collapsed">
+                    <TextBlock Text="PIN (4–8 Ziffern)" Margin="0,0,0,4" />
+                    <PasswordBox x:Name="PinBox1" Width="160" HorizontalAlignment="Left" />
+                    <TextBlock Text="PIN wiederholen" Margin="0,10,0,4" />
+                    <PasswordBox x:Name="PinBox2" Width="160" HorizontalAlignment="Left" />
+                </StackPanel>
+
+                <TextBlock Style="{StaticResource Heading}" Text="Start" />
+                <CheckBox x:Name="AutostartCheck" IsChecked="True" Content="ClipSec mit Windows starten" />
+
+                <Border x:Name="WinHistoryWarning" Margin="0,18,0,0" Padding="14,12" CornerRadius="8"
+                        Background="{DynamicResource WarningBgBrush}" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock Foreground="{DynamicResource WarningTextBrush}" FontWeight="SemiBold"
+                                   Text="Windows-Zwischenablageverlauf ist eingeschaltet" />
+                        <TextBlock Foreground="{DynamicResource WarningTextBrush}" Margin="0,4,0,8" TextWrapping="Wrap" FontSize="12"
+                                   Text="Windows speichert Kopien dann zusätzlich unverschlüsselt (ggf. sogar in der Cloud). Schalte unter Einstellungen → System → Zwischenablage „Zwischenablageverlauf“ und „Geräteübergreifend synchronisieren“ aus. ClipSec übernimmt Win+V." />
+                        <Button Content="Windows-Einstellungen öffnen" HorizontalAlignment="Left" Click="OpenWinSettings_Click" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Padding="28,14">
+            <Grid>
+                <TextBlock x:Name="ErrorText" Style="{StaticResource Error}" VerticalAlignment="Center" Margin="0,0,140,0" />
+                <Button x:Name="CreateButton" HorizontalAlignment="Right" Style="{StaticResource AccentButton}"
+                        Content="Einrichten" Click="Create_Click" IsDefault="True" />
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

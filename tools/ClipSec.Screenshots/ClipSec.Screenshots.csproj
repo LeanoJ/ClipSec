@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Erzeugt die Screenshots für Webseite und README aus den echten Fenstern – mit Beispieldaten. -->
+  <PropertyGroup>
+    <!-- Konsolenprogramm: Ein GUI-Programm, das versteckt gestartet wird, würde sein erstes Fenster nicht anzeigen. -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>ClipSec.Screenshots</AssemblyName>
+    <NoWarn>$(NoWarn);WFAC010</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\ClipSec\ClipSec.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,354 @@
+<Window x:Class="ClipSec.UI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ClipSec – Einstellungen" Width="780" Height="640" MinWidth="640" MinHeight="460"
+        Style="{StaticResource WindowBase}"
+        WindowStartupLocation="CenterScreen" Topmost="True"
+        Icon="pack://application:,,,/ClipSec;component/Assets/clipsec.ico">
+    <Window.Resources>
+        <Style x:Key="NavList" TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBox">
+                        <ItemsPresenter />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="ItemContainerStyle">
+                <Setter.Value>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Cursor" Value="Hand" />
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                        <Setter Property="Margin" Value="0,0,0,2" />
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ListBoxItem">
+                                    <Grid>
+                                        <Border x:Name="Bd" CornerRadius="6" Padding="12,8" Background="Transparent">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                                           FontFamily="{StaticResource IconFont}" FontSize="14" Width="26"
+                                                           VerticalAlignment="Center" Foreground="{DynamicResource TextBrush}" />
+                                                <ContentPresenter VerticalAlignment="Center" TextElement.Foreground="{DynamicResource TextBrush}" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border x:Name="Marker" Width="3" Height="16" CornerRadius="1.5" HorizontalAlignment="Left"
+                                                Background="{DynamicResource AccentBrush}" Visibility="Collapsed" />
+                                    </Grid>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                                        </Trigger>
+                                        <Trigger Property="IsSelected" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="{DynamicResource SurfaceBrush}" />
+                                            <Setter TargetName="Marker" Property="Visibility" Value="Visible" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="Section" TargetType="StackPanel">
+            <Setter Property="Visibility" Value="Collapsed" />
+            <Setter Property="Margin" Value="0,0,0,24" />
+        </Style>
+        <Style x:Key="Label" TargetType="TextBlock">
+            <Setter Property="Margin" Value="0,14,0,6" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Navigation -->
+        <ListBox x:Name="NavList" Style="{StaticResource NavList}" Margin="12,16,8,12"
+                 SelectionChanged="NavList_SelectionChanged">
+            <ListBoxItem Tag="&#xE72E;">Sperre &amp; PIN</ListBoxItem>
+            <ListBoxItem Tag="&#xEA18;">Vertraulich</ListBoxItem>
+            <ListBoxItem Tag="&#xE8F8;">Ausschlüsse</ListBoxItem>
+            <ListBoxItem Tag="&#xE81C;">Verlauf</ListBoxItem>
+            <ListBoxItem Tag="&#xE765;">Bedienung</ListBoxItem>
+            <ListBoxItem Tag="&#xE8D7;">Master-Passwort</ListBoxItem>
+            <ListBoxItem Tag="&#xE946;">Info</ListBoxItem>
+        </ListBox>
+
+        <Border Grid.Column="1" Background="{DynamicResource BgBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                BorderThickness="1,0,0,0">
+            <ScrollViewer x:Name="ContentScroll" VerticalScrollBarVisibility="Auto">
+                <Grid Margin="28,8,28,8">
+
+                    <!-- ============ Sperre ============ -->
+                    <StackPanel x:Name="SecLock" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="Automatisch sperren" />
+                        <TextBlock Style="{StaticResource Secondary}"
+                                   Text="Zeit ohne Nutzung von ClipSec bis zur Sperre. Jedes Öffnen und Einfügen startet den Timer neu." />
+                        <ListBox x:Name="TimeoutChips" Style="{StaticResource ChipList}" Margin="0,10,0,0">
+                            <ListBoxItem Tag="0">Sofort</ListBoxItem>
+                            <ListBoxItem Tag="1">1 Min.</ListBoxItem>
+                            <ListBoxItem Tag="2">2 Min.</ListBoxItem>
+                            <ListBoxItem Tag="5">5 Min.</ListBoxItem>
+                            <ListBoxItem Tag="10">10 Min.</ListBoxItem>
+                            <ListBoxItem Tag="15">15 Min.</ListBoxItem>
+                            <ListBoxItem Tag="30">30 Min.</ListBoxItem>
+                            <ListBoxItem Tag="60">60 Min.</ListBoxItem>
+                        </ListBox>
+                        <CheckBox x:Name="LockOnWinLockCheck" Content="Sperren, wenn Windows gesperrt wird (Win+L)" />
+
+                        <TextBlock Style="{StaticResource Label}" Text="Zusätzlich sperren, wenn der PC so lange gar nicht benutzt wurde" />
+                        <ListBox x:Name="IdleChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="0">Aus</ListBoxItem>
+                            <ListBoxItem Tag="2">2 Min.</ListBoxItem>
+                            <ListBoxItem Tag="5">5 Min.</ListBoxItem>
+                            <ListBoxItem Tag="10">10 Min.</ListBoxItem>
+                            <ListBoxItem Tag="15">15 Min.</ListBoxItem>
+                            <ListBoxItem Tag="30">30 Min.</ListBoxItem>
+                            <ListBoxItem Tag="60">60 Min.</ListBoxItem>
+                        </ListBox>
+
+                        <TextBlock Style="{StaticResource Heading}" Text="Kurz-PIN" />
+                        <CheckBox x:Name="PinCheck" Checked="PinCheck_Changed" Unchecked="PinCheck_Changed">
+                            <TextBlock TextWrapping="Wrap"
+                                       Text="Mit Kurz-PIN entsperren – nach der ersten Passworteingabe, gültig bis Neustart oder Abmelden." />
+                        </CheckBox>
+                        <StackPanel x:Name="PinPanel" Margin="28,4,0,0">
+                            <TextBlock x:Name="PinStatus" Style="{StaticResource Secondary}" Margin="0,0,0,8" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock x:Name="PinLabel" Text="Neue PIN (4–8 Ziffern)" Margin="0,0,0,4" />
+                                    <PasswordBox x:Name="PinBox1" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="PIN wiederholen" Margin="0,0,0,4" />
+                                    <PasswordBox x:Name="PinBox2" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource Label}" Text="Fehlversuche, bis das Passwort wieder nötig ist" />
+                            <ListBox x:Name="PinAttemptsChips" Style="{StaticResource ChipList}">
+                                <ListBoxItem Tag="3">3</ListBoxItem>
+                                <ListBoxItem Tag="5">5</ListBoxItem>
+                                <ListBoxItem Tag="10">10</ListBoxItem>
+                            </ListBox>
+                            <CheckBox x:Name="ForgetPinCheck" Content="PIN verwerfen, wenn Windows gesperrt wird (dann Passwort nötig)" />
+                        </StackPanel>
+                    </StackPanel>
+
+                    <!-- ============ Vertraulich ============ -->
+                    <StackPanel x:Name="SecSensitive" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="Vertrauliche Inhalte" />
+                        <TextBlock Style="{StaticResource Secondary}"
+                                   Text="Passwörter, IBANs, Kreditkarten, API-Schlüssel und Zugangsdaten werden erkannt und in der Liste als •••• angezeigt. Einträge lassen sich auch von Hand als vertraulich markieren." />
+                        <CheckBox x:Name="DetectSensitiveCheck" Margin="0,12,0,5"
+                                  Content="Vertrauliche Inhalte automatisch erkennen und maskieren" />
+                        <CheckBox x:Name="SensitivePasswordCheck">
+                            <TextBlock TextWrapping="Wrap"
+                                       Text="Zum Aufdecken, Einfügen oder Bearbeiten vertraulicher Einträge erneut das Master-Passwort verlangen (gilt bis zum Schließen des Popups)" />
+                        </CheckBox>
+
+                        <TextBlock Style="{StaticResource Label}" Text="Vertrauliche Einträge automatisch löschen nach (angeheftete bleiben)" />
+                        <ListBox x:Name="SensitiveRetentionChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="0">Nie</ListBoxItem>
+                            <ListBoxItem Tag="5">5 Min.</ListBoxItem>
+                            <ListBoxItem Tag="30">30 Min.</ListBoxItem>
+                            <ListBoxItem Tag="120">2 Std.</ListBoxItem>
+                            <ListBoxItem Tag="1440">24 Std.</ListBoxItem>
+                        </ListBox>
+
+                        <TextBlock Style="{StaticResource Heading}" Text="Zwischenablage automatisch leeren" />
+                        <TextBlock Style="{StaticResource Secondary}"
+                                   Text="Der aktuelle Inhalt der Zwischenablage ist sonst jederzeit per Strg+V verfügbar. Geleert wird nur, wenn du in der Zwischenzeit nichts anderes kopiert hast." />
+                        <TextBlock Style="{StaticResource Label}" Text="Wenn Vertrauliches in der Zwischenablage liegt (egal woher), leeren nach" />
+                        <ListBox x:Name="ClearSensitiveChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="0">Aus</ListBoxItem>
+                            <ListBoxItem Tag="10">10 s</ListBoxItem>
+                            <ListBoxItem Tag="30">30 s</ListBoxItem>
+                            <ListBoxItem Tag="60">60 s</ListBoxItem>
+                            <ListBoxItem Tag="120">2 Min.</ListBoxItem>
+                        </ListBox>
+                        <TextBlock Style="{StaticResource Label}" Text="Nach jedem Einfügen aus ClipSec leeren nach" />
+                        <ListBox x:Name="ClearPasteChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="0">Aus</ListBoxItem>
+                            <ListBoxItem Tag="10">10 s</ListBoxItem>
+                            <ListBoxItem Tag="30">30 s</ListBoxItem>
+                            <ListBoxItem Tag="60">60 s</ListBoxItem>
+                            <ListBoxItem Tag="120">2 Min.</ListBoxItem>
+                        </ListBox>
+                    </StackPanel>
+
+                    <!-- ============ Ausschlüsse ============ -->
+                    <StackPanel x:Name="SecExclude" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="Programme ausschließen" />
+                        <TextBlock Style="{StaticResource Secondary}"
+                                   Text="Was in diesen Programmen kopiert wird, nimmt ClipSec nie auf – z. B. Banking-Apps oder Passwortmanager." />
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="ExcludeInput" KeyDown="ExcludeInput_KeyDown" ToolTip="Programmname, z. B. KeePass.exe" />
+                            <Button Grid.Column="1" Margin="8,0,0,0" Content="Hinzufügen" Click="ExcludeAdd_Click" />
+                            <Button Grid.Column="2" Margin="8,0,0,0" Content="Durchsuchen …" Click="ExcludeBrowse_Click" />
+                        </Grid>
+                        <TextBlock x:Name="ExcludeEmpty" Style="{StaticResource Hint}" Margin="0,12,0,0"
+                                   Text="Noch keine Programme ausgeschlossen." />
+                        <ItemsControl x:Name="ExcludeList" Margin="0,10,0,0">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,6" Padding="12,6,6,6" CornerRadius="6" BorderThickness="1"
+                                            Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}">
+                                        <Grid>
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                                            <Button HorizontalAlignment="Right" Style="{StaticResource IconButton}" Content="&#xE711;"
+                                                    ToolTip="Entfernen" Click="ExcludeRemove_Click" />
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Style="{StaticResource Label}" Text="Gerade geöffnete Programme (zum Hinzufügen anklicken)" />
+                        <ListBox x:Name="RunningAppsChips" Style="{StaticResource ChipList}" SelectionChanged="RunningApps_SelectionChanged" />
+
+                        <TextBlock Style="{StaticResource Heading}" Text="Passwortmanager" />
+                        <CheckBox x:Name="RespectMarkersCheck">
+                            <TextBlock TextWrapping="Wrap"
+                                       Text="Inhalte ignorieren, die Programme als „nicht in den Verlauf aufnehmen“ markieren (KeePass, 1Password, Bitwarden u. a. – empfohlen)" />
+                        </CheckBox>
+                    </StackPanel>
+
+                    <!-- ============ Verlauf ============ -->
+                    <StackPanel x:Name="SecHistory" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="Verlauf" />
+                        <TextBlock Style="{StaticResource Label}" Margin="0,0,0,6" Text="Maximale Anzahl Einträge (angeheftete zählen nicht)" />
+                        <ListBox x:Name="MaxItemsChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="25">25</ListBoxItem>
+                            <ListBoxItem Tag="50">50</ListBoxItem>
+                            <ListBoxItem Tag="100">100</ListBoxItem>
+                            <ListBoxItem Tag="200">200</ListBoxItem>
+                        </ListBox>
+                        <TextBlock Style="{StaticResource Label}" Text="Nicht angeheftete Einträge automatisch löschen nach" />
+                        <ListBox x:Name="RetentionChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="0">Nie</ListBoxItem>
+                            <ListBoxItem Tag="1">1 Tag</ListBoxItem>
+                            <ListBoxItem Tag="3">3 Tagen</ListBoxItem>
+                            <ListBoxItem Tag="7">7 Tagen</ListBoxItem>
+                            <ListBoxItem Tag="14">14 Tagen</ListBoxItem>
+                            <ListBoxItem Tag="30">30 Tagen</ListBoxItem>
+                            <ListBoxItem Tag="60">60 Tagen</ListBoxItem>
+                            <ListBoxItem Tag="90">90 Tagen</ListBoxItem>
+                        </ListBox>
+                        <TextBlock Style="{StaticResource Label}" Text="Maximale Größe pro Eintrag" />
+                        <ListBox x:Name="MaxSizeChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="2">2 MB</ListBoxItem>
+                            <ListBoxItem Tag="8">8 MB</ListBoxItem>
+                            <ListBoxItem Tag="32">32 MB</ListBoxItem>
+                        </ListBox>
+                        <CheckBox x:Name="PersistCheck" Margin="0,10,0,5" Content="Verlauf verschlüsselt speichern (bleibt nach Neustart erhalten)" />
+                        <CheckBox x:Name="FormattingCheck" Content="Formatierung mitspeichern (z. B. aus Word oder dem Browser)" />
+                        <CheckBox x:Name="ImagesCheck" Content="Bilder aufnehmen" />
+                        <CheckBox x:Name="FilesCheck" Content="Kopierte Dateien (Pfade) aufnehmen" />
+                    </StackPanel>
+
+                    <!-- ============ Bedienung ============ -->
+                    <StackPanel x:Name="SecUsage" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="Bedienung" />
+                        <TextBlock Style="{StaticResource Label}" Margin="0,0,0,6" Text="Tastenkürzel zum Öffnen" />
+                        <ListBox x:Name="HotkeyChips" Style="{StaticResource ChipList}">
+                            <ListBoxItem Tag="0">Win+V</ListBoxItem>
+                            <ListBoxItem Tag="1">Strg+Umschalt+V</ListBoxItem>
+                            <ListBoxItem Tag="2">Strg+Alt+V</ListBoxItem>
+                        </ListBox>
+                        <CheckBox x:Name="AutoPasteCheck" Margin="0,10,0,5" Content="Nach Auswahl automatisch einfügen" />
+                        <CheckBox x:Name="AutostartCheck" Content="Mit Windows starten" />
+
+                        <TextBlock Style="{StaticResource Heading}" Text="Tastatur im Popup" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="150" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition />
+                            </Grid.RowDefinitions>
+                            <TextBlock Grid.Row="0" Style="{StaticResource Hint}" Text="Enter" Margin="0,3" />
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="Einfügen" Margin="0,3" />
+                            <TextBlock Grid.Row="1" Style="{StaticResource Hint}" Text="Umschalt+Enter" Margin="0,3" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="Als reinen Text einfügen" Margin="0,3" />
+                            <TextBlock Grid.Row="2" Style="{StaticResource Hint}" Text="Strg+1 … 9" Margin="0,3" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="n-ten Eintrag direkt einfügen" Margin="0,3" />
+                            <TextBlock Grid.Row="3" Style="{StaticResource Hint}" Text="Leertaste" Margin="0,3" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="Große Vorschau" Margin="0,3" />
+                            <TextBlock Grid.Row="4" Style="{StaticResource Hint}" Text="F2" Margin="0,3" />
+                            <TextBlock Grid.Row="4" Grid.Column="1" Text="Bearbeiten" Margin="0,3" />
+                            <TextBlock Grid.Row="5" Style="{StaticResource Hint}" Text="Entf" Margin="0,3" />
+                            <TextBlock Grid.Row="5" Grid.Column="1" Text="Löschen" Margin="0,3" />
+                            <TextBlock Grid.Row="6" Style="{StaticResource Hint}" Text="Rechtsklick" Margin="0,3" />
+                            <TextBlock Grid.Row="6" Grid.Column="1" Text="Alle Aktionen (Textbaustein, anheften, vertraulich …)" Margin="0,3" TextWrapping="Wrap" />
+                        </Grid>
+
+                        <Border x:Name="WinHistoryWarning" Margin="0,20,0,0" Padding="14,12" CornerRadius="8"
+                                Background="{DynamicResource WarningBgBrush}" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Foreground="{DynamicResource WarningTextBrush}" FontWeight="SemiBold"
+                                           Text="Windows-Zwischenablageverlauf ist eingeschaltet" />
+                                <TextBlock Foreground="{DynamicResource WarningTextBrush}" Margin="0,4,0,8" TextWrapping="Wrap" FontSize="12"
+                                           Text="Windows speichert Kopien dann zusätzlich unverschlüsselt. Bitte „Zwischenablageverlauf“ und „Geräteübergreifend synchronisieren“ ausschalten." />
+                                <Button Content="Windows-Einstellungen öffnen" HorizontalAlignment="Left" Click="OpenWinSettings_Click" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <!-- ============ Master-Passwort ============ -->
+                    <StackPanel x:Name="SecPassword" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="Master-Passwort ändern" />
+                        <TextBlock Style="{StaticResource Secondary}" Text="Leer lassen, um es nicht zu ändern. Mindestens 8 Zeichen." />
+                        <TextBlock Style="{StaticResource Label}" Text="Neues Passwort" />
+                        <PasswordBox x:Name="NewPw1" />
+                        <TextBlock Style="{StaticResource Label}" Text="Wiederholen" />
+                        <PasswordBox x:Name="NewPw2" />
+                    </StackPanel>
+
+                    <!-- ============ Info ============ -->
+                    <StackPanel x:Name="SecInfo" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="ClipSec" />
+                        <TextBlock x:Name="VersionText" Style="{StaticResource Secondary}" />
+                        <TextBlock Style="{StaticResource Label}" Text="Daten (verschlüsselt)" />
+                        <TextBlock x:Name="DataPathText" Style="{StaticResource Secondary}" />
+                        <TextBlock Style="{StaticResource Label}" Text="Programm" />
+                        <TextBlock x:Name="ProgramPathText" Style="{StaticResource Secondary}" />
+                        <StackPanel Orientation="Horizontal" Margin="0,16,0,0">
+                            <Button x:Name="UninstallButton" Content="ClipSec deinstallieren …" Click="Uninstall_Click" />
+                        </StackPanel>
+                    </StackPanel>
+                </Grid>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="1" Grid.ColumnSpan="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Padding="28,14">
+            <Grid>
+                <TextBlock x:Name="ErrorText" Style="{StaticResource Error}" VerticalAlignment="Center" Margin="0,0,220,0" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="Abbrechen" IsCancel="True" Margin="0,0,8,0" />
+                    <Button x:Name="SaveButton" Content="Speichern" Style="{StaticResource AccentButton}" Click="Save_Click" />
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

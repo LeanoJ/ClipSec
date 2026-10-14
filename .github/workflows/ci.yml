@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["website/**", "**.md"]
+  pull_request:
+    paths-ignore: ["website/**", "**.md"]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Bauen
+        run: dotnet build ClipSec.sln -c Release -warnaserror
+
+      - name: Tests
+        shell: pwsh
+        run: |
+          $env:CLIPSEC_DATA_DIR = Join-Path $env:RUNNER_TEMP 'clipsec-test'
+          dotnet run --project ClipSec.Tests -c Release

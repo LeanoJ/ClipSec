@@ -1,0 +1,5 @@
+downloads/
+unraid/
+docker-compose.yml
+README.md
+.dockerignore

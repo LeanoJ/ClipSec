@@ -1,0 +1,52 @@
+name: Fehler melden
+description: Etwas funktioniert nicht wie erwartet
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Danke für die Meldung! **Sicherheitslücken bitte nicht hier**, sondern über *Security → Report a vulnerability* melden.
+  - type: input
+    id: version
+    attributes:
+      label: ClipSec-Version
+      description: Zu finden unter Einstellungen → Info
+      placeholder: "1.1.0"
+    validations:
+      required: true
+  - type: input
+    id: windows
+    attributes:
+      label: Windows-Version
+      placeholder: "Windows 11 24H2"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Schritte zum Nachvollziehen
+      placeholder: |
+        1. Win+V drücken
+        2. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Erwartet
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Tatsächlich
+      description: Fehlermeldung, Screenshot (ohne vertrauliche Inhalte!)
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Datenschutz
+      options:
+        - label: Ich habe keine Passwörter, Verlaufsinhalte oder Dateien aus `%LOCALAPPDATA%\ClipSec` angehängt.
+          required: true

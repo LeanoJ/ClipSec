@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>clipsec-web</Name>
+  <Repository>ghcr.io/leanoj/clipsec-web:latest</Repository>
+  <Registry>https://github.com/LeanoJ/ClipSec/pkgs/container/clipsec-web</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/LeanoJ/ClipSec/issues</Support>
+  <Project>https://github.com/LeanoJ/ClipSec</Project>
+  <Overview>Webseite für ClipSec – gesicherte Zwischenablage für Windows. Erklärt alle Funktionen, zeigt Screenshots und stellt die neueste ClipSec-Setup.exe samt SHA-256-Prüfsumme zum Download bereit. Neue Releases werden automatisch von GitHub geholt.</Overview>
+  <Category>Productivity: Tools:Utilities</Category>
+  <WebUI>http://[IP]:[PORT:80]/</WebUI>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/LeanoJ/ClipSec/main/website/assets/img/icon-256.png</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires/>
+  <Config Name="Web-Port" Target="80" Default="8085" Mode="tcp" Description="Port, unter dem die Webseite erreichbar ist" Type="Port" Display="always" Required="true" Mask="false">8085</Config>
+  <Config Name="Downloads" Target="/downloads" Default="/mnt/user/appdata/clipsec-web/downloads" Mode="rw" Description="Hier liegen ClipSec-Setup.exe, latest.json und SHA256SUMS.txt" Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/clipsec-web/downloads</Config>
+  <Config Name="GitHub-Repository" Target="GITHUB_REPO" Default="LeanoJ/ClipSec" Mode="" Description="Neueste Releases automatisch holen (besitzer/repo). Leer lassen, um die Dateien selbst in den Downloads-Ordner zu legen." Type="Variable" Display="always" Required="false" Mask="false">LeanoJ/ClipSec</Config>
+  <Config Name="GitHub-Link" Target="GITHUB_URL" Default="https://github.com/LeanoJ/ClipSec" Mode="" Description="Link zum Quellcode auf der Webseite" Type="Variable" Display="always" Required="false" Mask="false">https://github.com/LeanoJ/ClipSec</Config>
+  <Config Name="Abgleich alle (Stunden)" Target="SYNC_INTERVAL_HOURS" Default="6" Mode="" Description="Wie oft nach neuen Releases geschaut wird" Type="Variable" Display="advanced" Required="false" Mask="false">6</Config>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="Benutzer-ID für Dateien im Downloads-Ordner (Unraid: 99 = nobody)" Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Gruppen-ID für Dateien im Downloads-Ordner (Unraid: 100 = users)" Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
+</Container>

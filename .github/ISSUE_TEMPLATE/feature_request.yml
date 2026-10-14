@@ -1,0 +1,20 @@
+name: Idee / Funktionswunsch
+description: Vorschlag für eine neue Funktion oder Verbesserung
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Welches Problem soll gelöst werden?
+      placeholder: "Ich möchte …, weil …"
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Wie könnte die Lösung aussehen?
+  - type: textarea
+    id: security
+    attributes:
+      label: Auswirkungen auf die Sicherheit
+      description: Würde die Idee Inhalte unverschlüsselt speichern oder den Sperrmechanismus aufweichen?

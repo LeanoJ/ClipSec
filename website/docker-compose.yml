@@ -1,0 +1,21 @@
+# ClipSec-Webseite – z. B. auf Unraid mit dem Plugin "Docker Compose Manager"
+#   docker compose up -d
+services:
+  clipsec-web:
+    image: ghcr.io/leanoj/clipsec-web:latest
+    # Alternativ lokal bauen statt aus der GitHub Container Registry zu laden:
+    # build: .
+    container_name: clipsec-web
+    restart: unless-stopped
+    ports:
+      - "8085:80"
+    environment:
+      # Neueste Releases automatisch von GitHub holen (leer lassen = Dateien selbst nach /downloads legen)
+      GITHUB_REPO: "LeanoJ/ClipSec"
+      GITHUB_URL: "https://github.com/LeanoJ/ClipSec"
+      SYNC_INTERVAL_HOURS: "6"
+      # Unraid-Standard: nobody:users
+      PUID: "99"
+      PGID: "100"
+    volumes:
+      - /mnt/user/appdata/clipsec-web/downloads:/downloads

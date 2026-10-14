@@ -1,0 +1,304 @@
+<Window x:Class="ClipSec.UI.ClipWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="ClipSec" Width="372" Height="520"
+        Style="{StaticResource WindowBase}"
+        WindowStyle="None" ResizeMode="NoResize" ShowInTaskbar="False" Topmost="True"
+        ShowActivated="True">
+    <!-- Kein AllowsTransparency: sonst schaltet Windows ClearType ab und die Schrift wirkt grau.
+         Runde Ecken + Schatten kommen von DWM (siehe WindowStyling). -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="0" GlassFrameThickness="0,0,0,1"
+                      CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <ContextMenu x:Key="ItemMenu" Opened="ItemMenu_Opened">
+            <MenuItem x:Name="MenuPaste" Header="Einfügen" Tag="&#xE77F;" InputGestureText="Enter" Click="MenuPaste_Click" />
+            <MenuItem x:Name="MenuPastePlain" Header="Als reinen Text einfügen" Tag="&#xE8E9;" InputGestureText="Umschalt+Enter" Click="MenuPastePlain_Click" />
+            <MenuItem x:Name="MenuPreview" Header="Vorschau" Tag="&#xE890;" InputGestureText="Leertaste" Click="MenuPreview_Click" />
+            <MenuItem x:Name="MenuEdit" Header="Bearbeiten" Tag="&#xE70F;" InputGestureText="F2" Click="MenuEdit_Click" />
+            <MenuItem x:Name="MenuSnippet" Header="Als Textbaustein …" Tag="&#xE8EC;" Click="MenuSnippet_Click" />
+            <Separator />
+            <MenuItem x:Name="MenuPin" Header="Anheften" Tag="&#xE718;" Click="MenuPin_Click" />
+            <MenuItem x:Name="MenuSensitive" Header="Als vertraulich markieren" Tag="&#xE72E;" Click="MenuSensitive_Click" />
+            <Separator />
+            <MenuItem x:Name="MenuDelete" Header="Löschen" Tag="&#xE74D;" InputGestureText="Entf" Click="MenuDelete_Click" />
+        </ContextMenu>
+    </Window.Resources>
+
+    <Border BorderThickness="1" BorderBrush="{DynamicResource BorderBrush}" Background="{DynamicResource BgBrush}">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Kopfzeile -->
+            <Grid Margin="14,10,8,4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Image Source="pack://application:,,,/ClipSec;component/Assets/clipsec.ico" Width="18" Height="18" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="ClipSec" FontWeight="SemiBold" FontSize="14"
+                           VerticalAlignment="Center" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal">
+                    <Button x:Name="ClearButton" Style="{StaticResource IconButton}" Content="&#xE74D;"
+                            ToolTip="Alle nicht angehefteten Einträge löschen" Click="ClearButton_Click" />
+                    <Button x:Name="LockButton" Style="{StaticResource IconButton}" Content="&#xE72E;"
+                            ToolTip="Jetzt sperren" Click="LockButton_Click" />
+                    <Button Style="{StaticResource IconButton}" Content="&#xE713;"
+                            ToolTip="Einstellungen" Click="SettingsButton_Click" />
+                    <Button Style="{StaticResource IconButton}" Content="&#xE711;"
+                            ToolTip="Schließen (Esc)" Click="CloseButton_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Gesperrt -->
+            <Grid x:Name="LockPanel" Grid.Row="1" Margin="28,0,28,0">
+                <StackPanel VerticalAlignment="Center">
+                    <Border Width="56" Height="56" CornerRadius="28" Background="{DynamicResource SurfaceBrush}"
+                            HorizontalAlignment="Center">
+                        <TextBlock Text="&#xE72E;" FontFamily="{StaticResource IconFont}" FontSize="24"
+                                   Foreground="{DynamicResource AccentBrush}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <TextBlock Margin="0,14,0,0" Text="Zwischenablage gesperrt" FontSize="16" FontWeight="SemiBold"
+                               HorizontalAlignment="Center" />
+                    <TextBlock x:Name="LockHint" Margin="0,4,0,16" Style="{StaticResource Secondary}" FontSize="13"
+                               TextAlignment="Center" HorizontalAlignment="Center" Text="Master-Passwort eingeben" />
+                    <PasswordBox x:Name="SecretBox" KeyDown="SecretBox_KeyDown" />
+                    <TextBlock x:Name="LockError" Margin="0,8,0,0" Style="{StaticResource Error}"
+                               TextAlignment="Center" Visibility="Collapsed" />
+                    <Button x:Name="UnlockButton" Margin="0,12,0,0" Style="{StaticResource AccentButton}"
+                            Content="Entsperren" Click="UnlockButton_Click" />
+                    <Button x:Name="UsePasswordLink" Margin="0,14,0,0" Style="{StaticResource LinkButton}"
+                            HorizontalAlignment="Center" Content="Stattdessen Master-Passwort verwenden"
+                            Click="UsePasswordLink_Click" Visibility="Collapsed" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Entsperrt: Verlauf -->
+            <Grid x:Name="ListPanel" Grid.Row="1" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <Grid Margin="12,4,12,8">
+                    <TextBox x:Name="SearchBox" TextChanged="SearchBox_TextChanged" />
+                    <TextBlock Text="Suchen …" Margin="11,0,0,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                               Foreground="{DynamicResource TextHintBrush}">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Text, ElementName=SearchBox}" Value="">
+                                        <Setter Property="Visibility" Value="Visible" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </Grid>
+
+                <ListBox x:Name="FilterChips" Grid.Row="1" Margin="12,0,6,4" Style="{StaticResource ChipList}"
+                         DisplayMemberPath="Label" SelectionChanged="FilterChips_SelectionChanged" Focusable="False"
+                         Visibility="Collapsed" />
+
+                <ListBox x:Name="ItemsList" Grid.Row="2" Background="Transparent" BorderThickness="0"
+                         Padding="8,0,4,8" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                         VirtualizingPanel.ScrollUnit="Pixel" KeyDown="ItemsList_KeyDown"
+                         FocusVisualStyle="{x:Null}">
+                    <ListBox.ItemContainerStyle>
+                        <Style TargetType="ListBoxItem">
+                            <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                            <Setter Property="Margin" Value="0,0,0,6" />
+                            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            <Setter Property="ContextMenu" Value="{StaticResource ItemMenu}" />
+                            <EventSetter Event="MouseLeftButtonUp" Handler="Item_MouseLeftButtonUp" />
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ListBoxItem">
+                                        <Border x:Name="Card" CornerRadius="7" BorderThickness="1" Padding="12,9,6,9"
+                                                Background="{DynamicResource SurfaceBrush}"
+                                                BorderBrush="{DynamicResource BorderBrush}" Cursor="Hand">
+                                            <ContentPresenter />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource SurfaceHoverBrush}" />
+                                            </Trigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="Card" Property="Background" Value="{DynamicResource SurfaceSelectedBrush}" />
+                                                <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ListBox.ItemContainerStyle>
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,3"
+                                               TextTrimming="CharacterEllipsis"
+                                               Visibility="{Binding HasTitle, Converter={StaticResource BoolToVis}}" />
+                                    <DockPanel Visibility="{Binding ShowText, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock DockPanel.Dock="Left" Text="&#xE8B7;" FontFamily="{StaticResource IconFont}" Margin="0,2,8,0"
+                                                   Foreground="{DynamicResource AccentBrush}"
+                                                   Visibility="{Binding IsFiles, Converter={StaticResource BoolToVis}}" />
+                                        <TextBlock Text="{Binding PreviewText}" TextWrapping="Wrap" MaxHeight="96"
+                                                   TextTrimming="CharacterEllipsis" FontSize="13" />
+                                    </DockPanel>
+                                    <Image Source="{Binding Thumbnail}" MaxHeight="120" HorizontalAlignment="Left"
+                                           Stretch="Uniform"
+                                           Visibility="{Binding ShowImage, Converter={StaticResource BoolToVis}}" />
+                                    <Grid Margin="0,6,0,0">
+                                        <TextBlock Style="{StaticResource Hint}" FontSize="12" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding KindLabel, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding AgeText, Mode=OneWay}" />
+                                        </TextBlock>
+                                        <TextBlock HorizontalAlignment="Right" Style="{StaticResource Hint}" FontSize="11"
+                                                   Text="{Binding QuickHint}" />
+                                    </Grid>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0"
+                                                Visibility="{Binding Sensitive, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock Text="&#xE72E;" FontFamily="{StaticResource IconFont}" FontSize="11"
+                                                   Foreground="{DynamicResource SensitiveBrush}" Margin="0,2,5,0" />
+                                        <TextBlock Text="{Binding SensitiveLabel}" FontSize="12"
+                                                   Foreground="{DynamicResource SensitiveBrush}" />
+                                    </StackPanel>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Top" Margin="4,-5,0,0" Orientation="Horizontal">
+                                    <Button Click="RevealButton_Click" ToolTip="Aufdecken / verbergen"
+                                            Visibility="{Binding Sensitive, Converter={StaticResource BoolToVis}}">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                                <Setter Property="Content" Value="&#xE890;" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Revealed}" Value="True">
+                                                        <Setter Property="Content" Value="&#xED1A;" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Click="PinButton_Click" ToolTip="Anheften / lösen">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource IconButton}">
+                                                <Setter Property="Content" Value="&#xE718;" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Pinned}" Value="True">
+                                                        <Setter Property="Content" Value="&#xE840;" />
+                                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                    </Button>
+                                    <Button Style="{StaticResource IconButton}" Content="&#xE712;" ToolTip="Weitere Aktionen"
+                                            Click="MoreButton_Click" />
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <StackPanel x:Name="EmptyState" Grid.Row="2" VerticalAlignment="Center" Margin="28,0"
+                            Visibility="Collapsed">
+                    <TextBlock Text="&#xE77F;" FontFamily="{StaticResource IconFont}" FontSize="28"
+                               Foreground="{DynamicResource TextHintBrush}" HorizontalAlignment="Center" />
+                    <TextBlock x:Name="EmptyText" Margin="0,10,0,0" Text="Noch nichts kopiert"
+                               HorizontalAlignment="Center" FontWeight="SemiBold" />
+                    <TextBlock x:Name="EmptySub" Margin="0,4,0,0" Style="{StaticResource Secondary}" TextAlignment="Center"
+                               Text="Alles, was du kopierst, landet hier – verschlüsselt." />
+                </StackPanel>
+            </Grid>
+
+            <!-- Einblendung: Vorschau -->
+            <Grid x:Name="PreviewPanel" Grid.Row="1" Background="{DynamicResource BgBrush}" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="PreviewTitle" Margin="14,4,14,8" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                <TextBox x:Name="PreviewText" Grid.Row="1" Margin="12,0" IsReadOnly="True" TextWrapping="Wrap"
+                         VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Stretch"
+                         FontFamily="Cascadia Mono, Consolas" FontSize="12.5" />
+                <Border x:Name="PreviewImageHost" Grid.Row="1" Margin="12,0" CornerRadius="7" BorderThickness="1"
+                        Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}"
+                        Visibility="Collapsed">
+                    <Image x:Name="PreviewImage" Stretch="Uniform" StretchDirection="DownOnly" Margin="6" />
+                </Border>
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,10">
+                    <Button Content="Schließen" Margin="0,0,8,0" Click="CloseOverlay_Click" />
+                    <Button Content="Einfügen" Style="{StaticResource AccentButton}" Click="PreviewPaste_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Einblendung: Bearbeiten -->
+            <Grid x:Name="EditPanel" Grid.Row="1" Background="{DynamicResource BgBrush}" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <StackPanel Margin="14,4,14,8">
+                    <TextBlock Text="Eintrag bearbeiten" FontWeight="SemiBold" />
+                    <TextBlock Style="{StaticResource Hint}" Margin="0,2,0,0"
+                               Text="Strg+Enter speichert und fügt ein. Formatierung entfällt." />
+                </StackPanel>
+                <TextBox x:Name="EditBox" Grid.Row="1" Margin="12,0" AcceptsReturn="True" AcceptsTab="True"
+                         TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Stretch"
+                         PreviewKeyDown="EditBox_PreviewKeyDown" />
+                <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,10">
+                    <Button Content="Abbrechen" Margin="0,0,8,0" Click="CloseOverlay_Click" />
+                    <Button Content="Speichern" Margin="0,0,8,0" Click="EditSave_Click" />
+                    <Button Content="Speichern &amp; einfügen" Style="{StaticResource AccentButton}" Click="EditSavePaste_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Einblendung: Textbaustein -->
+            <Grid x:Name="SnippetPanel" Grid.Row="1" Background="{DynamicResource BgBrush}" Visibility="Collapsed">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="14,4,14,8">
+                        <TextBlock Text="Als Textbaustein speichern" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource Secondary}" Margin="0,2,0,12"
+                                   Text="Name und Gruppe werden verschlüsselt gespeichert. Der Eintrag wird angeheftet." />
+                        <TextBlock Text="Name" Margin="0,0,0,4" />
+                        <TextBox x:Name="SnippetName" KeyDown="SnippetBox_KeyDown" />
+                        <TextBlock Text="Gruppe (optional)" Margin="0,12,0,4" />
+                        <TextBox x:Name="SnippetGroup" KeyDown="SnippetBox_KeyDown" />
+                        <ListBox x:Name="SnippetGroupChips" Margin="0,8,0,0" Style="{StaticResource ChipList}"
+                                 SelectionChanged="SnippetGroupChips_SelectionChanged" Focusable="False" />
+                    </StackPanel>
+                </ScrollViewer>
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="12,10">
+                    <Button Content="Abbrechen" Margin="0,0,8,0" Click="CloseOverlay_Click" />
+                    <Button Content="Speichern" Style="{StaticResource AccentButton}" Click="SnippetSave_Click" />
+                </StackPanel>
+            </Grid>
+
+            <!-- Fußzeile -->
+            <Border Grid.Row="2" BorderThickness="0,1,0,0" BorderBrush="{DynamicResource BorderBrush}" Padding="14,7">
+                <TextBlock x:Name="StatusText" Style="{StaticResource Secondary}" TextWrapping="NoWrap"
+                           TextTrimming="CharacterEllipsis" />
+            </Border>
+        </Grid>
+    </Border>
+</Window>

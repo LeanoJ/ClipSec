@@ -1,0 +1,573 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ClipSec – Gesicherte Zwischenablage für Windows</title>
+  <meta name="description" content="ClipSec ersetzt Win+V durch einen verschlüsselten, passwortgeschützten Zwischenablage-Verlauf für Windows 10 und 11. Kostenlos und Open Source.">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
+  <meta property="og:title" content="ClipSec – Gesicherte Zwischenablage für Windows">
+  <meta property="og:description" content="Win+V mit Master-Passwort, Verschlüsselung und automatischer Sperre.">
+  <meta property="og:image" content="assets/img/screenshots/popup-list.png">
+  <link rel="icon" href="favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" href="assets/img/icon-64.png">
+  <link rel="apple-touch-icon" href="assets/img/icon-256.png">
+  <link rel="stylesheet" href="assets/css/style.css">
+  <script src="config.js" defer></script>
+  <script src="assets/js/main.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Zum Inhalt springen</a>
+
+  <!-- Symbole (inline, damit keine externen Ressourcen nötig sind) -->
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7"/><circle cx="12" cy="15.5" r="1.2"/></symbol>
+    <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="7.5"/><path d="M12 9v4l2.5 2M9.5 2.5h5"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="8" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="16" cy="12" r="1"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="3"/><path d="M4 20 20 4"/></symbol>
+    <symbol id="i-broom" viewBox="0 0 24 24"><path d="M14.5 3.5 10 12M6.5 12.5h7l1.5 8h-10z"/><path d="M8.5 16v4.5M11.5 16v4.5"/></symbol>
+    <symbol id="i-block" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="m6 6 12 12"/></symbol>
+    <symbol id="i-format" viewBox="0 0 24 24"><path d="M4 18 9 5h1l5 13M6 13.5h7M16 11h5M16 15h5M16 19h5"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="M15.5 4.5 19.5 8.5 9 19H5v-4z"/><path d="m13.5 6.5 4 4"/></symbol>
+    <symbol id="i-tag" viewBox="0 0 24 24"><path d="M3.5 12.5V4.5h8l9 9-8 8z"/><circle cx="8" cy="9" r="1.3"/></symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M9 14.5l2 2 4-4"/></symbol>
+    <symbol id="i-box" viewBox="0 0 24 24"><path d="m12 3 8.5 4.5v9L12 21l-8.5-4.5v-9z"/><path d="m3.5 7.5 8.5 4.5 8.5-4.5M12 12v9"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3.5v11M7.5 10l4.5 4.5 4.5-4.5M4.5 19.5h15"/></symbol>
+    <symbol id="i-github" viewBox="0 0 24 24"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.5 2.8 5.4 3.1 5.4 3.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4 9.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V21"/></symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="12" height="12" rx="2"/><path d="M15.5 8.5v-3a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h3"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.8 19.5 6v5.5c0 4.6-3.2 8.4-7.5 9.7-4.3-1.3-7.5-5.1-7.5-9.7V6z"/><path d="m8.8 12 2.2 2.2 4.4-4.4"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5 21.5 20h-19z"/><path d="M12 10v4.5M12 17.2v.3"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" aria-label="ClipSec Startseite">
+        <img src="assets/img/icon-64.png" width="28" height="28" alt="">
+        <span>ClipSec</span>
+      </a>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="site-nav" aria-label="Menü öffnen">
+        <svg class="icon"><use href="#i-menu"/></svg>
+      </button>
+      <nav id="site-nav" class="site-nav" aria-label="Hauptnavigation">
+        <a href="#funktionen">Funktionen</a>
+        <a href="#einblicke">Einblicke</a>
+        <a href="#sicherheit">Sicherheit</a>
+        <a href="#faq">FAQ</a>
+        <a class="js-github" href="https://github.com/LeanoJ/ClipSec" rel="noopener">
+          <svg class="icon"><use href="#i-github"/></svg> GitHub
+        </a>
+        <a class="btn btn-small btn-primary" href="#download">Download</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============================== Hero ============================== -->
+    <section class="hero" id="top">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><svg class="icon"><use href="#i-shield"/></svg> Open Source · Windows 10 &amp; 11</p>
+          <h1>Deine Zwischenablage.<br><span class="grad">Verschlüsselt und gesperrt.</span></h1>
+          <p class="lead">
+            Windows merkt sich alles, was du kopierst – Passwörter, IBANs, private Nachrichten. Und jeder, der kurz an
+            deinem PC sitzt, sieht es mit <kbd>Win</kbd>+<kbd>V</kbd>. ClipSec ersetzt den Verlauf durch einen
+            verschlüsselten Tresor, der erst nach deinem Passwort aufgeht.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary btn-large js-download-link" href="#download">
+              <svg class="icon"><use href="#i-download"/></svg>
+              <span>Kostenlos herunterladen</span>
+            </a>
+            <a class="btn btn-ghost btn-large js-github" href="https://github.com/LeanoJ/ClipSec" rel="noopener">
+              <svg class="icon"><use href="#i-github"/></svg>
+              <span>Quellcode</span>
+            </a>
+          </div>
+          <p class="hero-meta">
+            <span class="js-version">Aktuelle Version</span> · keine Adminrechte · keine Cloud · kein Tracking
+          </p>
+        </div>
+        <div class="hero-visual" aria-hidden="true">
+          <div class="glow"></div>
+          <img class="shot shot-back" src="assets/img/screenshots/popup-locked.png" width="372" height="520" alt="">
+          <img class="shot shot-front" src="assets/img/screenshots/popup-list.png" width="372" height="520" alt="">
+          <div class="badge-float">
+            <svg class="icon"><use href="#i-lock"/></svg>
+            <span>AES-256-GCM</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Problem ============================== -->
+    <section class="problem">
+      <div class="container">
+        <div class="problem-grid">
+          <div class="problem-card">
+            <span class="problem-num">01</span>
+            <h2 class="h4">Win+V zeigt jedem alles</h2>
+            <p>Der eingebaute Verlauf hat keine Sperre. Wer an deinem entsperrten PC sitzt, sieht die letzten Kopien – inklusive Passwörtern.</p>
+          </div>
+          <div class="problem-card">
+            <span class="problem-num">02</span>
+            <h2 class="h4">Unverschlüsselt gespeichert</h2>
+            <p>Angeheftete Einträge überleben Neustarts, auf Wunsch werden Kopien sogar geräteübergreifend in die Cloud synchronisiert.</p>
+          </div>
+          <div class="problem-card is-solution">
+            <span class="problem-num"><svg class="icon"><use href="#i-check"/></svg></span>
+            <h2 class="h4">ClipSec sperrt ab</h2>
+            <p>Jeder Eintrag wird einzeln verschlüsselt. Ohne Master-Passwort (oder Kurz-PIN) kommt niemand an den Verlauf – auch nicht über die Dateien.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Funktionen ============================== -->
+    <section class="section" id="funktionen">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">Funktionen</p>
+          <h2>Alles, was ein Verlauf können sollte – nur sicher.</h2>
+        </header>
+
+        <h3 class="group-title">Sperre</h3>
+        <div class="features">
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-lock"/></svg>
+            <h4>Win+V mit Master-Passwort</h4>
+            <p>ClipSec übernimmt das bekannte Tastenkürzel. Ohne Passwort bleibt der Verlauf verschlossen – auch für Programme, die die Dateien lesen.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-timer"/></svg>
+            <h4>Gleitender Sperr-Timer</h4>
+            <p>Solange du ClipSec benutzt, bleibt es offen. Nach 1–60 Minuten ohne Nutzung (oder sofort) sperrt es wieder. Dazu: Sperre bei Win+L, Standby und – optional – PC-Inaktivität.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-pin"/></svg>
+            <h4>Kurz-PIN bis zum Neustart</h4>
+            <p>Einmal das lange Passwort, danach reicht eine 4–8-stellige PIN – bis zum Neustart oder Abmelden. Nach zu vielen Fehlversuchen ist wieder das Passwort fällig.</p>
+          </article>
+        </div>
+
+        <h3 class="group-title">Datenschutz</h3>
+        <div class="features">
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-eye"/></svg>
+            <h4>Vertrauliches wird maskiert</h4>
+            <p>Passwörter, IBANs, Kreditkarten, API-Schlüssel und Zugangsdaten werden erkannt und als •••• angezeigt. Optional verlangt das Aufdecken erneut das Master-Passwort.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-broom"/></svg>
+            <h4>Zwischenablage leeren</h4>
+            <p>Liegt Vertrauliches in der Zwischenablage, wird sie nach 30 Sekunden geleert – aber nur, wenn du seitdem nichts anderes kopiert hast.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-block"/></svg>
+            <h4>Programme ausschließen</h4>
+            <p>Banking-App, Passwortmanager & Co.: Was dort kopiert wird, landet nie im Verlauf. Markierungen von KeePass, 1Password und Bitwarden werden respektiert.</p>
+          </article>
+        </div>
+
+        <h3 class="group-title">Bedienung</h3>
+        <div class="features">
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-format"/></svg>
+            <h4>Formatiert oder reiner Text</h4>
+            <p>Formatierungen aus Word oder dem Browser bleiben erhalten. <kbd>Umschalt</kbd>+<kbd>Enter</kbd> fügt bewusst ohne Formatierung ein.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-bolt"/></svg>
+            <h4>Schnellwahl &amp; Vorschau</h4>
+            <p><kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>9</kbd> fügt direkt ein, die <kbd>Leertaste</kbd> zeigt lange Texte und Bilder groß an.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-edit"/></svg>
+            <h4>Vor dem Einfügen bearbeiten</h4>
+            <p>Tippfehler korrigieren oder Platzhalter ersetzen: <kbd>F2</kbd> öffnet den Eintrag, <kbd>Strg</kbd>+<kbd>Enter</kbd> speichert und fügt ein.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-tag"/></svg>
+            <h4>Textbausteine &amp; Gruppen</h4>
+            <p>Signaturen, Adressen, Standardantworten: benennen, gruppieren, anheften – und über Filter-Chips mit einem Klick finden. Namen werden mitverschlüsselt.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-calendar"/></svg>
+            <h4>Räumt selbst auf</h4>
+            <p>Alte Einträge verschwinden auf Wunsch nach 1–90 Tagen, vertrauliche schon nach Minuten. Angeheftetes bleibt.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-box"/></svg>
+            <h4>Installiert ohne Adminrechte</h4>
+            <p>Ein Setup, pro Benutzer, mit Startmenü-Eintrag und sauberer Deinstallation über „Apps“. Oder einfach portabel starten.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Einblicke ============================== -->
+    <section class="section section-alt" id="einblicke">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">Einblicke</p>
+          <h2>So sieht ClipSec aus</h2>
+          <p class="section-lead">Echte Screenshots, erzeugt mit Beispieldaten. Klick auf ein Bild für die große Ansicht.</p>
+        </header>
+
+        <div class="tour">
+          <div class="tabs" role="tablist" aria-label="Bereiche von ClipSec">
+            <button role="tab" id="tab-lock" aria-controls="panel-lock" aria-selected="true">Sperre</button>
+            <button role="tab" id="tab-list" aria-controls="panel-list" aria-selected="false" tabindex="-1">Verlauf</button>
+            <button role="tab" id="tab-sensitive" aria-controls="panel-sensitive" aria-selected="false" tabindex="-1">Vertraulich</button>
+            <button role="tab" id="tab-actions" aria-controls="panel-actions" aria-selected="false" tabindex="-1">Aktionen</button>
+            <button role="tab" id="tab-preview" aria-controls="panel-preview" aria-selected="false" tabindex="-1">Vorschau &amp; Bearbeiten</button>
+            <button role="tab" id="tab-snippets" aria-controls="panel-snippets" aria-selected="false" tabindex="-1">Textbausteine</button>
+            <button role="tab" id="tab-settings" aria-controls="panel-settings" aria-selected="false" tabindex="-1">Einstellungen</button>
+            <button role="tab" id="tab-install" aria-controls="panel-install" aria-selected="false" tabindex="-1">Installation</button>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-lock" aria-labelledby="tab-lock">
+            <div class="panel-shots two">
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-locked.png" width="372" height="520" loading="lazy" alt="ClipSec gesperrt: Eingabe des Master-Passworts"><figcaption>Erster Aufruf: Master-Passwort</figcaption></figure>
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-pin.png" width="372" height="520" loading="lazy" alt="ClipSec gesperrt: Eingabe der Kurz-PIN"><figcaption>Danach: Kurz-PIN</figcaption></figure>
+            </div>
+            <div class="panel-text">
+              <h3>Gesperrt, bis du es öffnest</h3>
+              <ul class="checks">
+                <li><kbd>Win</kbd>+<kbd>V</kbd> öffnet ClipSec am Textcursor – gesperrt.</li>
+                <li>Nach der ersten Passworteingabe reicht bis zum Neustart die Kurz-PIN.</li>
+                <li>Auch im gesperrten Zustand wird mitgeschrieben – verschlüsselt, ohne dass ClipSec selbst etwas lesen kann.</li>
+                <li>Fehlversuche werden gebremst; nach zu vielen falschen PINs ist das Passwort nötig.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-list" aria-labelledby="tab-list" hidden>
+            <div class="panel-shots">
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-list.png" width="372" height="520" loading="lazy" alt="Entsperrter Verlauf mit Suche, Filter-Chips und Einträgen"></figure>
+            </div>
+            <div class="panel-text">
+              <h3>Dein Verlauf – wie gewohnt</h3>
+              <ul class="checks">
+                <li>Text, Bilder und kopierte Dateien, neueste oben, Angeheftetes ganz oben.</li>
+                <li>Sofort tippen zum Suchen, <kbd>↑</kbd>/<kbd>↓</kbd> zum Auswählen, <kbd>Enter</kbd> fügt ins vorherige Fenster ein.</li>
+                <li>Filter-Chips für Angeheftet, Gruppen und Vertrauliches.</li>
+                <li>Die Fußzeile zeigt, wann ClipSec wieder sperrt.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-sensitive" aria-labelledby="tab-sensitive" hidden>
+            <div class="panel-shots two">
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-sensitive.png" width="372" height="520" loading="lazy" alt="Vertraulicher Eintrag (IBAN) maskiert"><figcaption>Maskiert</figcaption></figure>
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-sensitive-revealed.png" width="372" height="520" loading="lazy" alt="Vertraulicher Eintrag aufgedeckt"><figcaption>Per Auge aufgedeckt</figcaption></figure>
+            </div>
+            <div class="panel-text">
+              <h3>Vertrauliches bleibt verdeckt</h3>
+              <ul class="checks">
+                <li>IBANs werden per Prüfsumme, Kreditkarten per Luhn-Algorithmus erkannt – wenig Fehlalarme.</li>
+                <li>Dazu Passwörter, API-Schlüssel (OpenAI, GitHub, AWS …), Tokens und private Schlüssel.</li>
+                <li>Einträge lassen sich auch von Hand markieren oder entmarkieren.</li>
+                <li>Optional: Aufdecken und Einfügen nur nach erneutem Master-Passwort.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-actions" aria-labelledby="tab-actions" hidden>
+            <div class="panel-shots">
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-menu.png" width="444" height="711" loading="lazy" alt="Kontextmenü eines Eintrags mit allen Aktionen"></figure>
+            </div>
+            <div class="panel-text">
+              <h3>Alles mit einem Rechtsklick</h3>
+              <ul class="checks">
+                <li>Einfügen, als reinen Text einfügen, Vorschau, Bearbeiten.</li>
+                <li>Als Textbaustein speichern, anheften, als vertraulich markieren, löschen.</li>
+                <li>Jede Aktion auch per Tastatur: <kbd>Enter</kbd>, <kbd>Umschalt</kbd>+<kbd>Enter</kbd>, <kbd>Leertaste</kbd>, <kbd>F2</kbd>, <kbd>Entf</kbd>.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-preview" aria-labelledby="tab-preview" hidden>
+            <div class="panel-shots two">
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-preview.png" width="372" height="520" loading="lazy" alt="Große Vorschau eines Code-Eintrags"><figcaption>Vorschau (Leertaste)</figcaption></figure>
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-edit.png" width="372" height="520" loading="lazy" alt="Eintrag bearbeiten"><figcaption>Bearbeiten (F2)</figcaption></figure>
+            </div>
+            <div class="panel-text">
+              <h3>Erst ansehen, dann einfügen</h3>
+              <ul class="checks">
+                <li>Lange Texte, Code und Bilder in voller Größe prüfen.</li>
+                <li>Kleine Änderungen direkt im Eintrag – <kbd>Strg</kbd>+<kbd>Enter</kbd> speichert und fügt ein.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-snippets" aria-labelledby="tab-snippets" hidden>
+            <div class="panel-shots">
+              <figure><img class="zoomable popup" src="assets/img/screenshots/popup-snippet.png" width="372" height="520" loading="lazy" alt="Eintrag als Textbaustein mit Name und Gruppe speichern"></figure>
+            </div>
+            <div class="panel-text">
+              <h3>Textbausteine statt Copy-and-Paste-Dateien</h3>
+              <ul class="checks">
+                <li>Häufige Texte benennen und in Gruppen sortieren – z. B. „Mails“ oder „Privat“.</li>
+                <li>Textbausteine werden angeheftet und überleben Neustarts.</li>
+                <li>Name und Gruppe sind genauso verschlüsselt wie der Inhalt.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-settings" aria-labelledby="tab-settings" hidden>
+            <div class="panel-shots wide">
+              <figure><img class="zoomable js-settings-main" src="assets/img/screenshots/settings-lock.png" width="764" height="601" loading="lazy" alt="Einstellungen: Sperre und PIN"></figure>
+              <div class="thumbs" role="group" aria-label="Einstellungsseiten">
+                <button type="button" class="thumb is-active" data-src="assets/img/screenshots/settings-lock.png" data-alt="Einstellungen: Sperre und PIN">Sperre &amp; PIN</button>
+                <button type="button" class="thumb" data-src="assets/img/screenshots/settings-sensitive.png" data-alt="Einstellungen: Vertraulich">Vertraulich</button>
+                <button type="button" class="thumb" data-src="assets/img/screenshots/settings-exclude.png" data-alt="Einstellungen: Ausschlüsse">Ausschlüsse</button>
+                <button type="button" class="thumb" data-src="assets/img/screenshots/settings-history.png" data-alt="Einstellungen: Verlauf">Verlauf</button>
+                <button type="button" class="thumb" data-src="assets/img/screenshots/settings-usage.png" data-alt="Einstellungen: Bedienung">Bedienung</button>
+              </div>
+            </div>
+            <div class="panel-text">
+              <h3>Alles einstellbar – geschützt</h3>
+              <ul class="checks">
+                <li>Die Einstellungen öffnen sich nur mit dem Master-Passwort, nie mit der PIN.</li>
+                <li>Sperr-Timer, PIN, Erkennung, automatisches Leeren und Löschen, Ausschlüsse, Tastenkürzel.</li>
+                <li>Hell- und Dunkelmodus folgen Windows.</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="tab-panel" role="tabpanel" id="panel-install" aria-labelledby="tab-install" hidden>
+            <div class="panel-shots two">
+              <figure><img class="zoomable" src="assets/img/screenshots/install.png" width="504" height="441" loading="lazy" alt="Installationsassistent"><figcaption>Installation pro Benutzer</figcaption></figure>
+              <figure><img class="zoomable" src="assets/img/screenshots/setup.png" width="484" height="700" loading="lazy" alt="Ersteinrichtung mit Master-Passwort, Timer und PIN"><figcaption>Ersteinrichtung</figcaption></figure>
+            </div>
+            <div class="panel-text">
+              <h3>In einer Minute startklar</h3>
+              <ul class="checks">
+                <li>Setup ausführen – keine Adminrechte, kein Neustart.</li>
+                <li>Master-Passwort festlegen, Sperr-Timer wählen, optional eine PIN.</li>
+                <li>Fertig: <kbd>Win</kbd>+<kbd>V</kbd> drücken.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Sicherheit ============================== -->
+    <section class="section" id="sicherheit">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">Sicherheit</p>
+          <h2>Echte Verschlüsselung, keine Attrappe</h2>
+          <p class="section-lead">ClipSec blendet den Verlauf nicht nur aus – ohne Passwort ist er kryptografisch unlesbar. Auch für ClipSec selbst.</p>
+        </header>
+
+        <figure class="flow" aria-label="Ablauf der Verschlüsselung">
+          <div class="flow-step">
+            <span class="flow-num">1</span>
+            <h4>Du kopierst</h4>
+            <p>Text, Bild oder Datei landet in der Zwischenablage.</p>
+          </div>
+          <div class="flow-arrow" aria-hidden="true"></div>
+          <div class="flow-step">
+            <span class="flow-num">2</span>
+            <h4>Versiegeln</h4>
+            <p>Mit dem <strong>öffentlichen</strong> Schlüssel: ECDH P-256 + AES-256-GCM. Klappt auch gesperrt.</p>
+          </div>
+          <div class="flow-arrow" aria-hidden="true"></div>
+          <div class="flow-step">
+            <span class="flow-num">3</span>
+            <h4>Gespeichert</h4>
+            <p>Nur verschlüsselt auf der Platte – inkl. Formatierung, Name und Gruppe.</p>
+          </div>
+          <div class="flow-arrow" aria-hidden="true"></div>
+          <div class="flow-step is-key">
+            <span class="flow-num"><svg class="icon"><use href="#i-lock"/></svg></span>
+            <h4>Entsperren</h4>
+            <p>Master-Passwort → PBKDF2 (600 000 Runden) → <strong>privater</strong> Schlüssel → lesbar.</p>
+          </div>
+        </figure>
+
+        <div class="sec-grid">
+          <div class="sec-card">
+            <h3 class="h4"><svg class="icon"><use href="#i-shield"/></svg> Was ClipSec schützt</h3>
+            <ul class="checks">
+              <li>Verlauf vor Personen an deinem entsperrten PC</li>
+              <li>Gespeicherte Dateien vor dem Auslesen (Offline-Angriffe)</li>
+              <li>Einträge vor unbemerkter Manipulation (authentifizierte Verschlüsselung)</li>
+              <li>Die PIN schützt nie Daten auf der Platte – sie gilt nur im Arbeitsspeicher bis zum Neustart</li>
+              <li>Gesperrt: Schlüssel und entschlüsselte Inhalte werden aus dem Speicher entfernt</li>
+            </ul>
+          </div>
+          <div class="sec-card is-honest">
+            <h3 class="h4"><svg class="icon"><use href="#i-warn"/></svg> Was ClipSec nicht kann</h3>
+            <ul class="dashes">
+              <li>Schadsoftware unter deinem Konto (Keylogger) abwehren – das kann kein Programm dieser Art</li>
+              <li>Den <em>aktuellen</em> Inhalt der Zwischenablage verstecken – dafür gibt es das automatische Leeren</li>
+              <li>Win+V in Fenstern abfangen, die als Administrator laufen (Windows-Schutz)</li>
+              <li>Ein vergessenes Master-Passwort wiederherstellen – bewusst nicht</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Download ============================== -->
+    <section class="section section-alt" id="download">
+      <div class="container">
+        <header class="section-head">
+          <p class="eyebrow">Download</p>
+          <h2>ClipSec herunterladen</h2>
+        </header>
+
+        <div class="download-grid">
+          <div class="download-card">
+            <div class="download-top">
+              <img src="assets/img/icon-64.png" width="56" height="56" alt="">
+              <div>
+                <h3 class="h4">ClipSec für Windows</h3>
+                <p class="muted js-dl-meta">Windows 10/11 · 64-Bit</p>
+              </div>
+            </div>
+            <a class="btn btn-primary btn-large btn-block js-dl-button" href="#" aria-disabled="true">
+              <svg class="icon"><use href="#i-download"/></svg>
+              <span class="js-dl-label">Download wird vorbereitet …</span>
+            </a>
+            <div class="hash js-hash" hidden>
+              <span class="hash-label">SHA-256</span>
+              <code class="js-hash-value"></code>
+              <button type="button" class="icon-btn js-copy-hash" aria-label="Prüfsumme kopieren" title="Prüfsumme kopieren">
+                <svg class="icon"><use href="#i-copy"/></svg>
+              </button>
+            </div>
+            <p class="dl-fallback js-dl-fallback" hidden>
+              Der Download ist hier gerade nicht verfügbar. Alle Versionen findest du bei den
+              <a class="js-releases" href="https://github.com/LeanoJ/ClipSec/releases" rel="noopener">GitHub-Releases</a>.
+            </p>
+            <p class="muted small">
+              Ältere Versionen &amp; Änderungen:
+              <a class="js-releases" href="https://github.com/LeanoJ/ClipSec/releases" rel="noopener">Releases auf GitHub</a>
+            </p>
+          </div>
+
+          <ol class="steps">
+            <li>
+              <h4>Setup starten</h4>
+              <p><code>ClipSec-Setup.exe</code> ausführen. Windows SmartScreen warnt bei neuen, unsignierten Programmen:
+                „Weitere Informationen“ → „Trotzdem ausführen“.</p>
+            </li>
+            <li>
+              <h4>Prüfsumme vergleichen <span class="muted">(empfohlen)</span></h4>
+              <p>In PowerShell: <code>Get-FileHash .\ClipSec-Setup.exe</code> – der Wert muss mit der SHA-256 links übereinstimmen.</p>
+            </li>
+            <li>
+              <h4>Master-Passwort festlegen</h4>
+              <p>Mindestens 8 Zeichen, gut merken – es gibt keine Wiederherstellung. Optional eine Kurz-PIN.</p>
+            </li>
+            <li>
+              <h4>Windows-Verlauf ausschalten</h4>
+              <p><em>Einstellungen → System → Zwischenablage</em>: „Zwischenablageverlauf“ und „Geräteübergreifend synchronisieren“ aus.
+                Sonst speichert Windows Kopien zusätzlich unverschlüsselt.</p>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== Tastatur ============================== -->
+    <section class="section" id="tastatur">
+      <div class="container narrow">
+        <header class="section-head">
+          <p class="eyebrow">Tastatur</p>
+          <h2>Schneller als die Maus</h2>
+        </header>
+        <div class="table-wrap">
+          <table class="keys">
+            <tbody>
+              <tr><td><kbd>Win</kbd>+<kbd>V</kbd></td><td>ClipSec öffnen (alternativ <kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>V</kbd>)</td></tr>
+              <tr><td><kbd>Enter</kbd></td><td>Ausgewählten Eintrag einfügen</td></tr>
+              <tr><td><kbd>Umschalt</kbd>+<kbd>Enter</kbd></td><td>Als reinen Text einfügen</td></tr>
+              <tr><td><kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>9</kbd></td><td>n-ten Eintrag direkt einfügen</td></tr>
+              <tr><td><kbd>Leertaste</kbd></td><td>Große Vorschau</td></tr>
+              <tr><td><kbd>F2</kbd></td><td>Bearbeiten</td></tr>
+              <tr><td><kbd>Entf</kbd></td><td>Löschen</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Schließen</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================== FAQ ============================== -->
+    <section class="section section-alt" id="faq">
+      <div class="container narrow">
+        <header class="section-head">
+          <p class="eyebrow">FAQ</p>
+          <h2>Häufige Fragen</h2>
+        </header>
+        <div class="faq">
+          <details>
+            <summary>Ich habe mein Master-Passwort vergessen – was nun?</summary>
+            <p>Dann ist der gespeicherte Verlauf nicht mehr lesbar – das ist der Sinn der Verschlüsselung. Über das Tray-Symbol →
+              „Passwort vergessen – Tresor zurücksetzen“ löschst du den Verlauf und vergibst ein neues Passwort.</p>
+          </details>
+          <details>
+            <summary>Wo liegen meine Daten?</summary>
+            <p>Nur lokal unter <code>%LOCALAPPDATA%\ClipSec</code>: <code>vault.json</code> (verschlüsselter Schlüssel),
+              <code>history.dat</code> (verschlüsselte Einträge) und <code>settings.json</code>. ClipSec hat keine Cloud,
+              kein Konto und sendet nichts ins Internet.</p>
+          </details>
+          <details>
+            <summary>Warum warnt Windows SmartScreen beim Setup?</summary>
+            <p>SmartScreen warnt bei Programmen, die (noch) nicht oft heruntergeladen wurden oder nicht kostenpflichtig signiert sind.
+              Der Quellcode ist offen, jedes Release wird automatisch auf GitHub gebaut, und die SHA-256-Prüfsumme kannst du selbst vergleichen.</p>
+          </details>
+          <details>
+            <summary>Schützt ClipSec vor Viren oder Keyloggern?</summary>
+            <p>Nein. Schadsoftware, die unter deinem Benutzerkonto läuft, kann Tastatureingaben und den Arbeitsspeicher mitlesen.
+              ClipSec schützt vor Menschen an deinem PC und vor dem Auslesen der gespeicherten Dateien.</p>
+          </details>
+          <details>
+            <summary>Funktioniert ClipSec mit KeePass, 1Password oder Bitwarden?</summary>
+            <p>Ja. Diese Programme markieren kopierte Passwörter als „nicht in den Verlauf aufnehmen“ – ClipSec respektiert das.
+              Zusätzlich kannst du sie unter <em>Einstellungen → Ausschlüsse</em> komplett ausschließen.</p>
+          </details>
+          <details>
+            <summary>Was passiert, wenn ich etwas kopiere, während ClipSec gesperrt ist?</summary>
+            <p>Es wird trotzdem aufgenommen – mit dem öffentlichen Schlüssel verschlüsselt. Lesen kann ClipSec es erst nach dem Entsperren.</p>
+          </details>
+          <details>
+            <summary>Wie deinstalliere ich ClipSec?</summary>
+            <p>Über <em>Windows-Einstellungen → Apps</em> oder in ClipSec unter <em>Einstellungen → Info</em>. Dabei kannst du wählen,
+              ob dein verschlüsselter Verlauf erhalten bleibt.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="brand">
+        <img src="assets/img/icon-32.png" width="24" height="24" alt="">
+        <span>ClipSec</span>
+      </div>
+      <p class="muted small">Open Source unter MIT-Lizenz · <span class="js-version-footer"></span></p>
+      <nav class="footer-nav" aria-label="Fußzeile">
+        <a class="js-github" href="https://github.com/LeanoJ/ClipSec" rel="noopener">GitHub</a>
+        <a class="js-releases" href="https://github.com/LeanoJ/ClipSec/releases" rel="noopener">Releases</a>
+        <a class="js-security" href="https://github.com/LeanoJ/ClipSec/security/policy" rel="noopener">Sicherheit melden</a>
+      </nav>
+    </div>
+  </footer>
+
+  <div class="lightbox" hidden>
+    <button type="button" class="lightbox-close" aria-label="Schließen">×</button>
+    <img class="lightbox-img" src="data:," alt="">
+  </div>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Ohne NuGet-Abhängigkeiten: einfacher Konsolen-Testlauf für die Kryptografie-Schicht. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ClipSec\Core\AppPaths.cs" Link="Core\AppPaths.cs" />
+    <Compile Include="..\ClipSec\Core\CryptoVault.cs" Link="Core\CryptoVault.cs" />
+    <Compile Include="..\ClipSec\Core\ClipModels.cs" Link="Core\ClipModels.cs" />
+    <Compile Include="..\ClipSec\Core\SensitiveDetector.cs" Link="Core\SensitiveDetector.cs" />
+  </ItemGroup>
+
+</Project>
