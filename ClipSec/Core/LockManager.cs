@@ -23,17 +23,25 @@ public sealed class LockManager
     private int _passwordFailures;
     private DateTime _passwordBlockedUntilUtc = DateTime.MinValue;
 
-    public LockManager(CryptoVault vault, HistoryStore history, AppSettings settings)
+    public LockManager(CryptoVault vault, HistoryStore history, AppSettings settings, ISecurityKeyProvider? keys = null)
     {
         _vault = vault;
         _history = history;
         _settings = settings;
+        Keys = keys ?? new WebAuthnSecurityKeyProvider();
         _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (_, _) => OnTick();
         _timer.Start();
     }
 
     public LockState State { get; private set; } = LockState.Locked;
+
+    public ISecurityKeyProvider Keys { get; }
+
+    public UnlockMode Mode => _vault.Mode;
+
+    /// <summary>Läuft gerade eine Abfrage am Sicherheitsschlüssel (Windows-Dialog offen)?</summary>
+    public bool KeyPromptActive { get; private set; }
 
     public bool IsUnlocked => State == LockState.Unlocked;
 
@@ -98,19 +106,91 @@ public sealed class LockManager
         GC.WaitForPendingFinalizers();
     }
 
-    public async Task<(bool ok, string? error)> UnlockWithPasswordAsync(string password)
+    /// <summary>
+    /// Entsperren mit Passwort. Im 2-Faktor-Modus folgt danach automatisch die Abfrage am
+    /// Sicherheitsschlüssel (<paramref name="hwnd"/> = Fenster, über dem der Windows-Dialog erscheint).
+    /// </summary>
+    public async Task<(bool ok, string? error)> UnlockWithPasswordAsync(string password, IntPtr hwnd = default)
     {
         if (PasswordBlockedFor > TimeSpan.Zero)
             return (false, $"Zu viele Fehlversuche. Bitte {Math.Ceiling(PasswordBlockedFor.TotalSeconds)} s warten.");
 
-        var ok = await Task.Run(() => _vault.UnlockWithPassword(password));
-        if (!ok) return (false, RegisterPasswordFailure());
+        if (_vault.Mode == UnlockMode.PasswordAndKey)
+        {
+            var passwordKey = await Task.Run(() => _vault.DerivePasswordKey(password));
+            try
+            {
+                var key = await AskKeyAsync(hwnd);
+                var ok2 = await Task.Run(() => _vault.UnlockWithPasswordAndKey(passwordKey, key.CredentialId, key.Secret));
+                System.Security.Cryptography.CryptographicOperations.ZeroMemory(key.Secret);
+                if (!ok2) return (false, RegisterPasswordFailure());
+            }
+            catch (SecurityKeyException ex)
+            {
+                return (false, ex.Message);
+            }
+            finally
+            {
+                System.Security.Cryptography.CryptographicOperations.ZeroMemory(passwordKey);
+            }
+        }
+        else
+        {
+            var ok = await Task.Run(() => _vault.UnlockWithPassword(password));
+            if (!ok) return (false, RegisterPasswordFailure());
+        }
 
         _passwordFailures = 0;
+        await CompleteFullUnlockAsync();
+        return (true, null);
+    }
+
+    /// <summary>Entsperren nur mit Sicherheitsschlüssel (Modus „Passwort oder Schlüssel“).</summary>
+    public async Task<(bool ok, string? error)> UnlockWithKeyAsync(IntPtr hwnd)
+    {
+        if (_vault.Mode != UnlockMode.PasswordOrKey)
+            return (false, _vault.Mode == UnlockMode.PasswordAndKey
+                ? "Bitte Master-Passwort eingeben – danach wird der Schlüssel abgefragt."
+                : "Es ist kein Sicherheitsschlüssel eingerichtet.");
+        try
+        {
+            var key = await AskKeyAsync(hwnd);
+            var ok = await Task.Run(() => _vault.UnlockWithKey(key.CredentialId, key.Secret));
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(key.Secret);
+            if (!ok) return (false, "Dieser Schlüssel passt nicht zu diesem Tresor.");
+        }
+        catch (SecurityKeyException ex)
+        {
+            return (false, ex.Message);
+        }
+        await CompleteFullUnlockAsync();
+        return (true, null);
+    }
+
+    private async Task<KeySecret> AskKeyAsync(IntPtr hwnd)
+    {
+        var ids = _vault.KeyCredentialIds;
+        if (ids.Count == 0) throw new SecurityKeyException("Es ist kein Sicherheitsschlüssel eingerichtet.");
+        if (!Keys.IsSupported(out var reason)) throw new SecurityKeyException(reason ?? "Nicht unterstützt.");
+        var salt = _vault.EnsureFidoSalt();
+        var raw = _vault.FidoRawSalt ?? false;
+        KeyPromptActive = true;
+        try
+        {
+            return await Task.Run(() => Keys.GetSecret(hwnd, ids, salt, raw));
+        }
+        finally
+        {
+            KeyPromptActive = false;
+        }
+    }
+
+    /// <summary>Nach Passwort- oder Schlüssel-Entsperrung: PIN-Sitzung anlegen, Verlauf entschlüsseln.</summary>
+    private async Task CompleteFullUnlockAsync()
+    {
         if (_settings.PinEnabled && _vault.HasPin && !_vault.PinSessionActive)
             await Task.Run(_vault.StartPinSession);
         await FinishUnlockAsync();
-        return (true, null);
     }
 
     /// <summary>Prüft das Passwort ohne Zustandswechsel (z. B. für Einstellungen) – mit derselben Bremse.</summary>
@@ -122,6 +202,80 @@ public sealed class LockManager
         if (!ok) return (false, RegisterPasswordFailure());
         _passwordFailures = 0;
         return (true, null);
+    }
+
+    /// <summary>Bestätigung per Sicherheitsschlüssel statt Passwort (entsperrt, Modus „Passwort oder Schlüssel“).</summary>
+    public async Task<(bool ok, string? error)> VerifyKeyAsync(IntPtr hwnd)
+    {
+        if (_vault.Mode != UnlockMode.PasswordOrKey) return (false, "Bitte Master-Passwort verwenden.");
+        try
+        {
+            var key = await AskKeyAsync(hwnd);
+            var ok = _vault.VerifyKey(key.CredentialId, key.Secret);
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(key.Secret);
+            return ok ? (true, null) : (false, "Dieser Schlüssel passt nicht zu diesem Tresor.");
+        }
+        catch (SecurityKeyException ex)
+        {
+            return (false, ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Registriert einen neuen Sicherheitsschlüssel (Tresor muss entsperrt sein).
+    /// Windows fragt dabei zweimal nach dem Schlüssel: Anlegen + hmac-secret abholen.
+    /// </summary>
+    public async Task<(bool ok, string? error)> AddSecurityKeyAsync(IntPtr hwnd, string name)
+    {
+        if (!Keys.IsSupported(out var reason)) return (false, reason);
+        if (!_vault.IsUnlocked) return (false, "ClipSec ist gesperrt.");
+        var salt = _vault.EnsureFidoSalt();
+        var existing = _vault.KeyCredentialIds;
+        var raw = _vault.FidoRawSalt; // null beim ersten Schlüssel → ermitteln
+        KeyPromptActive = true;
+        try
+        {
+            var credentialId = await Task.Run(() => Keys.Register(hwnd, existing));
+            var key = await Task.Run(() => Keys.GetSecret(hwnd, [credentialId], salt, raw));
+            _vault.AddSecurityKey(credentialId, name, key.Secret, key.RawSalt);
+            return (true, null);
+        }
+        catch (SecurityKeyException ex)
+        {
+            return (false, ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message);
+        }
+        finally
+        {
+            KeyPromptActive = false;
+        }
+    }
+
+    /// <summary>Prüft, ob ein registrierter Schlüssel noch das richtige Geheimnis liefert.</summary>
+    public async Task<(bool ok, string? error)> TestSecurityKeyAsync(IntPtr hwnd, byte[] credentialId)
+    {
+        if (!_vault.IsUnlocked) return (false, "ClipSec ist gesperrt.");
+        try
+        {
+            var salt = _vault.EnsureFidoSalt();
+            var raw = _vault.FidoRawSalt ?? false;
+            KeyPromptActive = true;
+            var key = await Task.Run(() => Keys.GetSecret(hwnd, [credentialId], salt, raw));
+            var ok = _vault.VerifyKey(key.CredentialId, key.Secret);
+            System.Security.Cryptography.CryptographicOperations.ZeroMemory(key.Secret);
+            return ok ? (true, null) : (false, "Der Schlüssel liefert ein anderes Geheimnis – bitte entfernen und neu hinzufügen.");
+        }
+        catch (SecurityKeyException ex)
+        {
+            return (false, ex.Message);
+        }
+        finally
+        {
+            KeyPromptActive = false;
+        }
     }
 
     private string RegisterPasswordFailure()
@@ -157,9 +311,7 @@ public sealed class LockManager
     public async Task AdoptUnlockedAsync()
     {
         if (!_vault.IsUnlocked) return;
-        if (_settings.PinEnabled && _vault.HasPin && !_vault.PinSessionActive)
-            await Task.Run(_vault.StartPinSession);
-        await FinishUnlockAsync();
+        await CompleteFullUnlockAsync();
     }
 
     /// <summary>Solange true (z. B. Einstellungen offen), wird nicht automatisch gesperrt.</summary>

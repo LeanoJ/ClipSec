@@ -146,8 +146,13 @@ public partial class ClipWindow : Window
         else
         {
             _pinMode = _c.Lock.CanUsePin && !_forcePassword;
-            LockHint.Text = _pinMode ? "Kurz-PIN eingeben" : "Master-Passwort eingeben";
+            var mode = _c.Lock.Mode;
+            LockHint.Text = _pinMode ? "Kurz-PIN eingeben"
+                : mode == UnlockMode.PasswordAndKey ? "Master-Passwort eingeben – danach Sicherheitsschlüssel berühren"
+                : mode == UnlockMode.PasswordOrKey ? "Master-Passwort eingeben oder Sicherheitsschlüssel verwenden"
+                : "Master-Passwort eingeben";
             UsePasswordLink.Visibility = _pinMode ? Visibility.Visible : Visibility.Collapsed;
+            KeyButton.Visibility = mode == UnlockMode.PasswordOrKey ? Visibility.Visible : Visibility.Collapsed;
             SecretBox.Clear();
             SetBusy(false);
         }
@@ -268,15 +273,57 @@ public partial class ClipWindow : Window
     {
         if (_busy) return;
         var secret = SecretBox.Password;
-        if (secret.Length == 0) return;
+        if (secret.Length == 0)
+        {
+            // Enter bei leerem Feld = Sicherheitsschlüssel (falls eingerichtet)
+            if (!_pinMode && _c.Lock.Mode == UnlockMode.PasswordOrKey) TryKeyUnlock();
+            return;
+        }
 
-        SetBusy(true);
-        var (ok, error) = _pinMode
-            ? await _c.Lock.UnlockWithPinAsync(secret)
-            : await _c.Lock.UnlockWithPasswordAsync(secret);
+        var withKey = !_pinMode && _c.Lock.Mode == UnlockMode.PasswordAndKey;
+        SetBusy(true, withKey ? "Sicherheitsschlüssel berühren …" : "Prüfe …");
+        (bool ok, string? error) result;
+        _suppressHide = true; // Windows-Dialog des Schlüssels nimmt den Fokus
+        try
+        {
+            result = _pinMode
+                ? await _c.Lock.UnlockWithPinAsync(secret)
+                : await _c.Lock.UnlockWithPasswordAsync(secret, Handle);
+        }
+        finally
+        {
+            _suppressHide = false;
+        }
         SecretBox.Clear();
         SetBusy(false);
+        HandleUnlockResult(result.ok, result.error);
+    }
 
+    private async void TryKeyUnlock()
+    {
+        if (_busy) return;
+        SetBusy(true, "Sicherheitsschlüssel berühren …");
+        (bool ok, string? error) result;
+        _suppressHide = true;
+        try
+        {
+            result = await _c.Lock.UnlockWithKeyAsync(Handle);
+        }
+        finally
+        {
+            _suppressHide = false;
+        }
+        SetBusy(false);
+        HandleUnlockResult(result.ok, result.error);
+    }
+
+    private void HandleUnlockResult(bool ok, string? error)
+    {
+        if (IsVisible)
+        {
+            Activate();
+            PasteHelper.ForceForeground(Handle);
+        }
         if (ok)
         {
             _forcePassword = false;
@@ -293,13 +340,17 @@ public partial class ClipWindow : Window
         SecretBox.Focus();
     }
 
-    private void SetBusy(bool busy)
+    private void SetBusy(bool busy, string busyText = "Prüfe …")
     {
         _busy = busy;
         SecretBox.IsEnabled = !busy;
         UnlockButton.IsEnabled = !busy;
-        UnlockButton.Content = busy ? "Prüfe …" : "Entsperren";
+        KeyButton.IsEnabled = !busy;
+        UnlockButton.Content = busy ? busyText
+            : !_pinMode && _c.Lock.Mode == UnlockMode.PasswordAndKey ? "Weiter zum Schlüssel" : "Entsperren";
     }
+
+    private void KeyButton_Click(object sender, RoutedEventArgs e) => TryKeyUnlock();
 
     private void ShowError(string text)
     {

@@ -20,7 +20,7 @@ public partial class SettingsWindow : Window
         _c = controller;
         InitializeComponent();
         WindowStyling.ApplyTitleBarTheme(this);
-        _sections = [SecLock, SecSensitive, SecExclude, SecHistory, SecUsage, SecPassword, SecInfo];
+        _sections = [SecLock, SecKeys, SecSensitive, SecExclude, SecHistory, SecUsage, SecPassword, SecInfo];
 
         var s = _c.Settings;
         // Sperre & PIN
@@ -68,6 +68,7 @@ public partial class SettingsWindow : Window
 
         UpdatePinPanel();
         UpdateWarning();
+        RefreshKeys();
         Activated += (_, _) => UpdateWarning();
         Loaded += (_, _) => NavList.SelectedIndex = 0;
     }
@@ -81,7 +82,152 @@ public partial class SettingsWindow : Window
         for (var i = 0; i < _sections.Length; i++)
             _sections[i].Visibility = i == index ? Visibility.Visible : Visibility.Collapsed;
         ContentScroll.ScrollToTop();
-        if (index == 2) LoadRunningApps();
+        if (_sections[index] == SecExclude) LoadRunningApps();
+    }
+
+    // ------------------------------------------------------------------ Sicherheitsschlüssel
+
+    /// <summary>Zeile in der Schlüsselliste.</summary>
+    private sealed record KeyRow(byte[] CredentialId, string Name, string Added);
+
+    private bool _updatingMode;
+    private bool _keyBusy;
+
+    private IntPtr Hwnd => new System.Windows.Interop.WindowInteropHelper(this).Handle;
+
+    private void RefreshKeys()
+    {
+        var supported = _c.Lock.Keys.IsSupported(out var reason);
+        KeysUnsupported.Visibility = supported ? Visibility.Collapsed : Visibility.Visible;
+        KeysUnsupportedText.Text = reason ?? "";
+
+        var keys = _c.Vault.SecurityKeys;
+        KeysList.ItemsSource = keys
+            .Select(k => new KeyRow(k.CredentialId, k.Name, "hinzugefügt am " + k.AddedUtc.ToLocalTime().ToString("dd.MM.yyyy")))
+            .ToList();
+        KeysEmpty.Visibility = keys.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+        AddKeyButton.IsEnabled = supported && !_keyBusy;
+        NewKeyName.IsEnabled = supported && !_keyBusy;
+
+        var mode = _c.Vault.Mode;
+        _updatingMode = true;
+        ModeChips.IsEnabled = keys.Count > 0 && !_keyBusy;
+        ModeChips.SelectedItem = mode == UnlockMode.Password
+            ? null
+            : ModeChips.Items.Cast<ListBoxItem>().First(i => (string)i.Tag == ((int)mode).ToString());
+        _updatingMode = false;
+
+        ModeHint.Text = mode switch
+        {
+            UnlockMode.PasswordOrKey => "Jeder registrierte Schlüssel entsperrt allein (mit seiner PIN). Das Master-Passwort funktioniert weiterhin.",
+            UnlockMode.PasswordAndKey => "Zum Entsperren sind Master-Passwort und ein registrierter Schlüssel nötig. Danach gilt wie gewohnt die Kurz-PIN bis zum Neustart.",
+            _ => "Füge zuerst einen Schlüssel hinzu.",
+        };
+        SingleKeyWarning.Visibility = mode == UnlockMode.PasswordAndKey && keys.Count < 2 ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ShowKeyStatus(string text, bool error)
+    {
+        KeysStatus.Text = text;
+        KeysStatus.Foreground = (System.Windows.Media.Brush)FindResource(error ? "DangerBrush" : "TextSecondaryBrush");
+        KeysStatus.Visibility = Visibility.Visible;
+    }
+
+    private void SetKeyBusy(bool busy)
+    {
+        _keyBusy = busy;
+        SaveButton.IsEnabled = !busy;
+        KeysList.IsEnabled = !busy;
+        RefreshKeys();
+    }
+
+    private async void KeyAdd_Click(object sender, RoutedEventArgs e)
+    {
+        if (_keyBusy) return;
+        var name = NewKeyName.Text.Trim();
+        if (name.Length == 0) name = "YubiKey";
+        if (_c.Vault.SecurityKeys.Any(k => string.Equals(k.Name, name, StringComparison.CurrentCultureIgnoreCase)))
+            name += $" ({_c.Vault.SecurityKeys.Count + 1})";
+
+        SetKeyBusy(true);
+        ShowKeyStatus("Bitte Sicherheitsschlüssel einstecken und den Anweisungen von Windows folgen …", error: false);
+        var (ok, error) = await _c.Lock.AddSecurityKeyAsync(Hwnd, name);
+        SetKeyBusy(false);
+        Activate();
+        if (ok)
+        {
+            ShowKeyStatus($"„{name}“ wurde registriert.", error: false);
+            NewKeyName.Text = _c.Vault.SecurityKeys.Count == 1 ? "Ersatzschlüssel" : "YubiKey";
+        }
+        else
+        {
+            ShowKeyStatus(error ?? "Registrierung fehlgeschlagen.", error: true);
+        }
+    }
+
+    private async void KeyTest_Click(object sender, RoutedEventArgs e)
+    {
+        if (_keyBusy || sender is not FrameworkElement { DataContext: KeyRow row }) return;
+        SetKeyBusy(true);
+        ShowKeyStatus($"Bitte „{row.Name}“ berühren …", error: false);
+        var (ok, error) = await _c.Lock.TestSecurityKeyAsync(Hwnd, row.CredentialId);
+        SetKeyBusy(false);
+        Activate();
+        ShowKeyStatus(ok ? $"„{row.Name}“ funktioniert." : error ?? "Test fehlgeschlagen.", error: !ok);
+    }
+
+    private void KeyRemove_Click(object sender, RoutedEventArgs e)
+    {
+        if (_keyBusy || sender is not FrameworkElement { DataContext: KeyRow row }) return;
+        var last = _c.Vault.SecurityKeys.Count == 1;
+        var text = $"Sicherheitsschlüssel „{row.Name}“ entfernen?" +
+                   (last ? "\n\nEs ist der letzte Schlüssel – danach entsperrt wieder nur das Master-Passwort." : "");
+        if (MessageBox.Show(this, text, "Sicherheitsschlüssel entfernen", MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+        try
+        {
+            _c.Vault.RemoveSecurityKey(row.CredentialId);
+            ShowKeyStatus($"„{row.Name}“ wurde entfernt.", error: false);
+        }
+        catch (Exception ex)
+        {
+            ShowKeyStatus(ex.Message, error: true);
+        }
+        RefreshKeys();
+    }
+
+    private void ModeChips_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_updatingMode || ModeChips.SelectedItem is not ListBoxItem { Tag: string tag }) return;
+        var mode = (UnlockMode)int.Parse(tag);
+        if (mode == _c.Vault.Mode) return;
+
+        if (mode == UnlockMode.PasswordAndKey)
+        {
+            var count = _c.Vault.SecurityKeys.Count;
+            var text = "Ab jetzt sind Master-Passwort und ein Sicherheitsschlüssel zum Entsperren nötig." +
+                       (count < 2
+                           ? "\n\nDu hast nur einen Schlüssel registriert. Geht er verloren oder kaputt, ist der Verlauf nicht mehr zugänglich. Trotzdem umstellen?"
+                           : "\n\nUmstellen?");
+            if (MessageBox.Show(this, text, "2-Faktor aktivieren", MessageBoxButton.YesNo,
+                    count < 2 ? MessageBoxImage.Warning : MessageBoxImage.Question) != MessageBoxResult.Yes)
+            {
+                RefreshKeys();
+                return;
+            }
+        }
+        try
+        {
+            _c.Vault.SetMode(mode);
+            ShowKeyStatus(mode == UnlockMode.PasswordAndKey
+                ? "2-Faktor ist aktiv: Passwort und Schlüssel."
+                : "Passwort oder Schlüssel – beides entsperrt allein.", error: false);
+        }
+        catch (Exception ex)
+        {
+            ShowKeyStatus(ex.Message, error: true);
+        }
+        RefreshKeys();
     }
 
     private void UpdateWarning() =>

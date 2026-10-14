@@ -142,6 +142,91 @@ Sens("3f2504e0-4f89-11d3-9a0c-0305e82c3301", null);
 Sens("+49 170 1234567", null);
 Sens("Console.WriteLine();", null);
 
+// ------------------------------------------------------------ Sicherheitsschlüssel (FIDO2 hmac-secret, simuliert)
+CryptoVault.DeleteAll();
+const string pw = "master-passwort-1";
+var kv = CryptoVault.Create(pw);
+var fidoSalt = kv.EnsureFidoSalt();
+// Ein YubiKey liefert für (Credential, Salt) immer dasselbe Geheimnis → HMAC simuliert das.
+byte[] KeySecret(byte[] deviceSecret, byte[] salt) => System.Security.Cryptography.HMACSHA256.HashData(deviceSecret, salt);
+var devA = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+var devB = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+var credA = System.Security.Cryptography.RandomNumberGenerator.GetBytes(48);
+var credB = System.Security.Cryptography.RandomNumberGenerator.GetBytes(48);
+var secA = KeySecret(devA, fidoSalt);
+var secB = KeySecret(devB, fidoSalt);
+var wrongSecret = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+var entryId = Guid.NewGuid().ToByteArray();
+var entryBlob = kv.Seal(Encoding.UTF8.GetBytes("Geheimer Eintrag"), entryId);
+bool Readable(CryptoVault v) => v.Open(entryBlob, entryId) is { } r && Encoding.UTF8.GetString(r) == "Geheimer Eintrag";
+
+Check(kv.Mode == UnlockMode.Password, "Neuer Tresor: nur Passwort");
+kv.AddSecurityKey(credA, "YubiKey A", secA, rawSalt: false);
+Check(kv.Mode == UnlockMode.PasswordOrKey, "Erster Schlüssel → Modus „Passwort oder Schlüssel“");
+
+var ko = CryptoVault.Load();
+Check(ko.UnlockWithKey(credA, secA) && Readable(ko), "ODER: Schlüssel allein entsperrt");
+ko.Lock();
+Check(!ko.UnlockWithKey(credA, wrongSecret), "ODER: falsches Geheimnis abgelehnt");
+Check(!ko.UnlockWithKey(credB, secA), "ODER: unbekannter Schlüssel abgelehnt");
+Check(ko.UnlockWithPassword(pw) && Readable(ko), "ODER: Passwort allein entsperrt weiterhin");
+Check(File.ReadAllText(AppPaths.VaultFile).Contains("\"WrappedPrivateKey\": \"") &&
+      !File.ReadAllText(AppPaths.VaultFile).Contains("\"WrappedPrivateKey\": \"\""), "ODER: Passwort-Fach für ältere Versionen vorhanden");
+
+// 2-Faktor
+ko.SetMode(UnlockMode.PasswordAndKey);
+var ka = CryptoVault.Load();
+Check(!ka.HasPasswordSlot && File.ReadAllText(AppPaths.VaultFile).Contains("\"WrappedPrivateKey\": \"\""), "UND: kein reines Passwort-Fach auf der Platte");
+Check(!ka.UnlockWithPassword(pw), "UND: Passwort allein reicht nicht");
+Check(!ka.UnlockWithKey(credA, secA), "UND: Schlüssel allein reicht nicht");
+Check(!ka.UnlockWithPasswordAndKey(ka.DerivePasswordKey("falsch"), credA, secA), "UND: falsches Passwort + Schlüssel abgelehnt");
+Check(!ka.UnlockWithPasswordAndKey(ka.DerivePasswordKey(pw), credA, wrongSecret), "UND: Passwort + falscher Schlüssel abgelehnt");
+Check(ka.UnlockWithPasswordAndKey(ka.DerivePasswordKey(pw), credA, secA) && Readable(ka), "UND: Passwort + Schlüssel entsperrt");
+Check(ka.VerifyPassword(pw) && !ka.VerifyPassword("falsch"), "UND: Passwortprüfung (Einstellungen) im entsperrten Zustand");
+Check(ka.VerifyKey(credA, secA) && !ka.VerifyKey(credA, wrongSecret), "Schlüsseltest vergleicht Geheimnis");
+
+ka.AddSecurityKey(credB, "Ersatzschlüssel", secB, rawSalt: false);
+Check(ka.Mode == UnlockMode.PasswordAndKey, "UND: zweiter Schlüssel ändert den Modus nicht");
+var kb = CryptoVault.Load();
+Check(kb.UnlockWithPasswordAndKey(kb.DerivePasswordKey(pw), credB, secB), "UND: Ersatzschlüssel + Passwort entsperrt");
+
+kb.ChangePassword("neues-passwort-2");
+var kc = CryptoVault.Load();
+Check(!kc.UnlockWithPasswordAndKey(kc.DerivePasswordKey(pw), credA, secA), "UND: altes Passwort nach Wechsel ungültig");
+Check(kc.UnlockWithPasswordAndKey(kc.DerivePasswordKey("neues-passwort-2"), credA, secA) && Readable(kc), "UND: neues Passwort + Schlüssel gültig");
+
+kc.SetPin("2468");
+kc.StartPinSession();
+kc.Lock();
+Check(kc.UnlockWithPin("2468", 3) == PinUnlockResult.Success && Readable(kc), "Kurz-PIN funktioniert nach Schlüssel-Entsperrung");
+
+// Zurück auf ODER, dann alle Schlüssel entfernen
+kc.SetMode(UnlockMode.PasswordOrKey);
+var kd = CryptoVault.Load();
+Check(kd.UnlockWithKey(credB, secB), "Zurück auf ODER ohne erneutes Berühren");
+kd.RemoveSecurityKey(credA);
+kd.RemoveSecurityKey(credB);
+Check(kd.Mode == UnlockMode.Password && kd.SecurityKeys.Count == 0, "Letzten Schlüssel entfernt → nur Passwort");
+var ke = CryptoVault.Load();
+Check(!ke.UnlockWithKey(credB, secB), "Entfernter Schlüssel entsperrt nicht mehr");
+Check(ke.UnlockWithPassword("neues-passwort-2") && Readable(ke), "Passwort entsperrt nach Entfernen aller Schlüssel");
+
+var threwMode = false;
+try { ke.SetMode(UnlockMode.PasswordAndKey); } catch (InvalidOperationException) { threwMode = true; }
+Check(threwMode, "2-Faktor ohne Schlüssel nicht möglich");
+
+// Übernahme eines Tresors aus Version 1 (ohne Secrets/Fächer)
+var node = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(AppPaths.VaultFile))!.AsObject();
+foreach (var k in new[] { "Mode", "FidoSalt", "FidoRawSalt", "Keys", "Secrets" }) node.Remove(k);
+node["Version"] = 1;
+File.WriteAllText(AppPaths.VaultFile, node.ToJsonString());
+var kf = CryptoVault.Load();
+Check(kf.UnlockWithPassword("neues-passwort-2") && Readable(kf), "Version-1-Tresor lässt sich entsperren");
+Check(File.ReadAllText(AppPaths.VaultFile).Contains("\"Secrets\": \"") && File.ReadAllText(AppPaths.VaultFile).Contains("\"Version\": 2"),
+    "Version-1-Tresor wird beim Entsperren auf Version 2 gehoben");
+kf.AddSecurityKey(credA, "YubiKey A", KeySecret(devA, kf.EnsureFidoSalt()), rawSalt: false);
+Check(CryptoVault.Load().UnlockWithKey(credA, KeySecret(devA, kf.EnsureFidoSalt())), "Nach Übernahme: Schlüssel hinzufügen funktioniert");
+
 CryptoVault.DeleteAll();
 Check(!CryptoVault.Exists(), "Zurücksetzen löscht Tresor");
 Directory.Delete(dir, true);

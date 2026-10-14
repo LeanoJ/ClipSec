@@ -75,6 +75,13 @@
                                TextAlignment="Center" Visibility="Collapsed" />
                     <Button x:Name="UnlockButton" Margin="0,12,0,0" Style="{StaticResource AccentButton}"
                             Content="Entsperren" Click="UnlockButton_Click" />
+                    <Button x:Name="KeyButton" Margin="0,8,0,0" Click="KeyButton_Click" Visibility="Collapsed"
+                            ToolTip="Enter bei leerem Feld funktioniert ebenfalls">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="&#xE8D7;" FontFamily="{StaticResource IconFont}" Margin="0,2,8,0" />
+                            <TextBlock Text="Mit Sicherheitsschlüssel" />
+                        </StackPanel>
+                    </Button>
                     <Button x:Name="UsePasswordLink" Margin="0,14,0,0" Style="{StaticResource LinkButton}"
                             HorizontalAlignment="Center" Content="Stattdessen Master-Passwort verwenden"
                             Click="UsePasswordLink_Click" Visibility="Collapsed" />

@@ -41,6 +41,7 @@
     <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2.8 19.5 6v5.5c0 4.6-3.2 8.4-7.5 9.7-4.3-1.3-7.5-5.1-7.5-9.7V6z"/><path d="m8.8 12 2.2 2.2 4.4-4.4"/></symbol>
     <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5 21.5 20h-19z"/><path d="M12 10v4.5M12 17.2v.3"/></symbol>
     <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4.5"/><path d="m11.2 11.8 8.3-8.3M16.5 6.5l2.5 2.5M14 9l2 2"/></symbol>
   </svg>
 
   <header class="site-header">
@@ -135,7 +136,7 @@
         </header>
 
         <h3 class="group-title">Sperre</h3>
-        <div class="features">
+        <div class="features features-4">
           <article class="feature">
             <svg class="icon feature-icon"><use href="#i-lock"/></svg>
             <h4>Win+V mit Master-Passwort</h4>
@@ -150,6 +151,11 @@
             <svg class="icon feature-icon"><use href="#i-pin"/></svg>
             <h4>Kurz-PIN bis zum Neustart</h4>
             <p>Einmal das lange Passwort, danach reicht eine 4–8-stellige PIN – bis zum Neustart oder Abmelden. Nach zu vielen Fehlversuchen ist wieder das Passwort fällig.</p>
+          </article>
+          <article class="feature">
+            <svg class="icon feature-icon"><use href="#i-key"/></svg>
+            <h4>YubiKey &amp; FIDO2</h4>
+            <p>Entsperren mit YubiKey 5 &amp; Co. – wahlweise <em>statt</em> des Passworts oder als zweiter Faktor <em>zusätzlich</em>. Mehrere Schlüssel, jederzeit umschaltbar.</p>
           </article>
         </div>
 
@@ -239,6 +245,7 @@
               <ul class="checks">
                 <li><kbd>Win</kbd>+<kbd>V</kbd> öffnet ClipSec am Textcursor – gesperrt.</li>
                 <li>Nach der ersten Passworteingabe reicht bis zum Neustart die Kurz-PIN.</li>
+                <li>Mit YubiKey: Schlüssel berühren statt Passwort tippen – oder beides verlangen (2-Faktor).</li>
                 <li>Auch im gesperrten Zustand wird mitgeschrieben – verschlüsselt, ohne dass ClipSec selbst etwas lesen kann.</li>
                 <li>Fehlversuche werden gebremst; nach zu vielen falschen PINs ist das Passwort nötig.</li>
               </ul>
@@ -323,6 +330,7 @@
               <figure><img class="zoomable js-settings-main" src="assets/img/screenshots/settings-lock.png" width="764" height="601" loading="lazy" alt="Einstellungen: Sperre und PIN"></figure>
               <div class="thumbs" role="group" aria-label="Einstellungsseiten">
                 <button type="button" class="thumb is-active" data-src="assets/img/screenshots/settings-lock.png" data-alt="Einstellungen: Sperre und PIN">Sperre &amp; PIN</button>
+                <button type="button" class="thumb" data-src="assets/img/screenshots/settings-keys.png" data-alt="Einstellungen: Sicherheitsschlüssel (YubiKey)">Sicherheitsschlüssel</button>
                 <button type="button" class="thumb" data-src="assets/img/screenshots/settings-sensitive.png" data-alt="Einstellungen: Vertraulich">Vertraulich</button>
                 <button type="button" class="thumb" data-src="assets/img/screenshots/settings-exclude.png" data-alt="Einstellungen: Ausschlüsse">Ausschlüsse</button>
                 <button type="button" class="thumb" data-src="assets/img/screenshots/settings-history.png" data-alt="Einstellungen: Verlauf">Verlauf</button>
@@ -400,6 +408,7 @@
               <li>Gespeicherte Dateien vor dem Auslesen (Offline-Angriffe)</li>
               <li>Einträge vor unbemerkter Manipulation (authentifizierte Verschlüsselung)</li>
               <li>Die PIN schützt nie Daten auf der Platte – sie gilt nur im Arbeitsspeicher bis zum Neustart</li>
+              <li>Optional 2-Faktor: Passwort <em>und</em> YubiKey – keines von beiden allein öffnet den Tresor</li>
               <li>Gesperrt: Schlüssel und entschlüsselte Inhalte werden aus dem Speicher entfernt</li>
             </ul>
           </div>
@@ -514,6 +523,14 @@
             <summary>Ich habe mein Master-Passwort vergessen – was nun?</summary>
             <p>Dann ist der gespeicherte Verlauf nicht mehr lesbar – das ist der Sinn der Verschlüsselung. Über das Tray-Symbol →
               „Passwort vergessen – Tresor zurücksetzen“ löschst du den Verlauf und vergibst ein neues Passwort.</p>
+          </details>
+          <details>
+            <summary>Kann ich einen YubiKey verwenden?</summary>
+            <p>Ja – jeden FIDO2-Sicherheitsschlüssel mit „hmac-secret“, z. B. YubiKey 5 oder Security Key. Unter
+              <em>Einstellungen → Sicherheitsschlüssel</em> registrierst du einen oder mehrere Schlüssel und wählst:
+              <strong>Passwort oder Schlüssel</strong> (Berühren + Schlüssel-PIN genügt) oder <strong>Passwort und Schlüssel</strong>
+              (2-Faktor). Umschalten geht jederzeit ohne erneute Registrierung. Im 2-Faktor-Modus unbedingt einen Ersatzschlüssel
+              anlegen – ohne Schlüssel gibt es keinen Zugang.</p>
           </details>
           <details>
             <summary>Wo liegen meine Daten?</summary>
