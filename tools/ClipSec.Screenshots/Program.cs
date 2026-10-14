@@ -90,6 +90,12 @@ internal static class Program
         };
         var vault = CryptoVault.Create("beispiel-passwort");
         vault.SetPin("4711");
+        // Erfundene Sicherheitsschlüssel (keine echte Hardware) → Modus „Passwort oder Schlüssel“
+        vault.EnsureFidoSalt();
+        vault.AddSecurityKey(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48), "YubiKey 5C NFC",
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32), rawSalt: false);
+        vault.AddSecurityKey(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48), "Ersatzschlüssel (Tresor)",
+            System.Security.Cryptography.RandomNumberGenerator.GetBytes(32), rawSalt: false);
         var history = new HistoryStore(vault, settings);
         var lockMgr = new LockManager(vault, history, settings);
         var ctrl = new AppController(app);
@@ -145,17 +151,18 @@ internal static class Program
         // Einstellungen
         var sw = new SettingsWindow(ctrl);
         var nav = (ListBox)sw.FindName("NavList");
-        string[] names = ["settings-lock.png", "settings-sensitive.png", "settings-exclude.png", "settings-history.png", "settings-usage.png"];
+        // Reihenfolge wie in der Navigation: Sperre, Schlüssel, Vertraulich, Ausschlüsse, Verlauf, Bedienung
+        string[] names = ["settings-lock.png", "settings-keys.png", "settings-sensitive.png", "settings-exclude.png", "settings-history.png", "settings-usage.png"];
         for (var i = 0; i < names.Length; i++)
         {
             nav.SelectedIndex = i;
-            if (i == 2)
+            if (names[i] == "settings-exclude.png")
             {
                 // Keine echten laufenden Programme zeigen
                 ((ListBox)sw.FindName("RunningAppsChips")).ItemsSource =
                     new[] { "chrome.exe", "EXCEL.EXE", "Outlook.exe", "Teams.exe", "WINWORD.EXE" };
             }
-            if (i == 4) ((FrameworkElement)sw.FindName("WinHistoryWarning")).Visibility = Visibility.Collapsed;
+            if (names[i] == "settings-usage.png") ((FrameworkElement)sw.FindName("WinHistoryWarning")).Visibility = Visibility.Collapsed;
             Save(Render(sw), names[i]);
         }
 
@@ -166,7 +173,7 @@ internal static class Program
         Save(Render(setup, height: 700), "setup.png");
 
         // Installer (Pfad ohne Benutzernamen)
-        var install = new InstallWindow { SizeToContent = SizeToContent.Manual, Height = 480 };
+        var install = new InstallWindow { SizeToContent = SizeToContent.Manual, Height = 455 };
         // Immer die Erstinstallation zeigen – unabhängig davon, ob ClipSec auf diesem Rechner installiert ist.
         ((TextBlock)install.FindName("HeaderText")).Text = "ClipSec installieren";
         ((TextBlock)install.FindName("VersionText")).Text = $"Version {Installer.Version}";

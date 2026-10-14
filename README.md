@@ -33,6 +33,7 @@ ClipSec ersetzt den eingebauten Verlauf durch einen verschlüsselten Tresor, der
 - **Master-Passwort** ist immer gesetzt und schützt den Verlauf kryptografisch
 - **Gleitender Sperr-Timer** (Sofort, 1–60 Min.): Jede Nutzung von ClipSec startet ihn neu; normales Kopieren in anderen Programmen verlängert nichts
 - **Kurz-PIN** (optional): nach der ersten Passworteingabe bis Neustart/Abmelden; nach 3/5/10 Fehlversuchen verworfen
+- **YubiKey / FIDO2** (optional): *Passwort oder Schlüssel* (Berühren + Schlüssel-PIN genügt) oder *Passwort und Schlüssel* (2-Faktor) – mehrere Schlüssel, jederzeit umschaltbar
 - Sperrt bei Win+L, Standby und – optional – wenn der PC X Minuten gar nicht benutzt wurde
 
 **Vertrauliche Inhalte**
@@ -88,6 +89,8 @@ $env:CLIPSEC_DATA_DIR = "$env:TEMP\clipsec-test"; dotnet run --project ClipSec.T
 | Aufnehmen im gesperrten Zustand | Nur mit dem öffentlichen Schlüssel – ClipSec kann gesperrt schreiben, aber nichts lesen |
 | Privater Schlüssel | Auf der Platte nur verschlüsselt mit PBKDF2-SHA256 (600 000 Iterationen) aus dem Master-Passwort |
 | Kurz-PIN | Schützt **nie** Daten auf der Platte; nur eine Kopie des Schlüssels im Arbeitsspeicher; Prozessende = PIN ungültig |
+| Sicherheitsschlüssel | FIDO2 **hmac-secret** über die Windows-WebAuthn-API (Berühren + Schlüssel-PIN). Eigenes Fach je Schlüssel: `HKDF(hmac-secret)`, im 2-Faktor-Modus `HKDF(PBKDF2(Passwort) ‖ hmac-secret)` – dann gibt es kein reines Passwort- oder Schlüssel-Fach |
+| Moduswechsel | PBKDF2-Wert und hmac-secrets liegen zusätzlich verschlüsselt *mit dem Tresorschlüssel selbst* vor – nur entsperrt lesbar; erlaubt Umschalten/Passwortwechsel ohne erneutes Berühren |
 | Gesperrt | Privater Schlüssel und entschlüsselte Einträge werden aus dem Speicher entfernt |
 | Unverschlüsselte Metadaten | Nur Zeitpunkt, angeheftet und „vertraulich“-Flag (für automatisches Löschen im gesperrten Zustand) |
 | Brute-Force | Passwort: wachsende Wartezeit ab dem 3. Fehlversuch; PIN: begrenzte Versuche |
@@ -103,3 +106,4 @@ Daten liegen in `%LOCALAPPDATA%\ClipSec` (`vault.json`, `history.dat`, `settings
 - Die Erkennung vertraulicher Inhalte ist heuristisch – Einträge lassen sich jederzeit von Hand markieren oder entmarkieren.
 - Gegen Schadsoftware, die unter deinem Benutzerkonto läuft (Keylogger, Speicher auslesen), schützt kein Programm dieser Art.
 - Passwort vergessen → *Tray-Menü → Tresor zurücksetzen* löscht den Verlauf. Eine Wiederherstellung gibt es bewusst nicht.
+- Im 2-Faktor-Modus gilt dasselbe für verlorene Schlüssel – deshalb einen **Ersatzschlüssel** registrieren.

@@ -77,6 +77,7 @@
         <ListBox x:Name="NavList" Style="{StaticResource NavList}" Margin="12,16,8,12"
                  SelectionChanged="NavList_SelectionChanged">
             <ListBoxItem Tag="&#xE72E;">Sperre &amp; PIN</ListBoxItem>
+            <ListBoxItem Tag="&#xE88E;">Sicherheitsschlüssel</ListBoxItem>
             <ListBoxItem Tag="&#xEA18;">Vertraulich</ListBoxItem>
             <ListBoxItem Tag="&#xE8F8;">Ausschlüsse</ListBoxItem>
             <ListBoxItem Tag="&#xE81C;">Verlauf</ListBoxItem>
@@ -148,6 +149,75 @@
                             </ListBox>
                             <CheckBox x:Name="ForgetPinCheck" Content="PIN verwerfen, wenn Windows gesperrt wird (dann Passwort nötig)" />
                         </StackPanel>
+                    </StackPanel>
+
+                    <!-- ============ Sicherheitsschlüssel ============ -->
+                    <StackPanel x:Name="SecKeys" Style="{StaticResource Section}">
+                        <TextBlock Style="{StaticResource Heading}" Text="Sicherheitsschlüssel (YubiKey)" />
+                        <TextBlock Style="{StaticResource Secondary}"
+                                   Text="Entsperren mit einem FIDO2-Sicherheitsschlüssel wie dem YubiKey 5. Der Schlüssel berechnet ein Geheimnis, das ihn nie verlässt – nur nach Berühren und Eingabe seiner PIN." />
+
+                        <Border x:Name="KeysUnsupported" Margin="0,12,0,0" Padding="14,12" CornerRadius="8"
+                                Background="{DynamicResource WarningBgBrush}" Visibility="Collapsed">
+                            <TextBlock x:Name="KeysUnsupportedText" Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap" />
+                        </Border>
+
+                        <TextBlock Style="{StaticResource Label}" Text="Registrierte Schlüssel" />
+                        <TextBlock x:Name="KeysEmpty" Style="{StaticResource Hint}" Text="Noch kein Schlüssel registriert." />
+                        <ItemsControl x:Name="KeysList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,0,0,6" Padding="12,8,6,8" CornerRadius="6" BorderThickness="1"
+                                            Background="{DynamicResource SurfaceBrush}" BorderBrush="{DynamicResource BorderBrush}">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="&#xE8D7;" FontFamily="{StaticResource IconFont}" FontSize="16"
+                                                       Foreground="{DynamicResource AccentBrush}" VerticalAlignment="Center" Margin="0,0,12,0" />
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding Added}" Style="{StaticResource Hint}" />
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                                <Button Content="Testen" Padding="10,4" Margin="0,0,6,0" Click="KeyTest_Click" />
+                                                <Button Style="{StaticResource IconButton}" Content="&#xE74D;" ToolTip="Entfernen"
+                                                        Click="KeyRemove_Click" />
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="NewKeyName" Text="YubiKey" ToolTip="Name des Schlüssels, z. B. „YubiKey 5C“ oder „Ersatzschlüssel“" />
+                            <Button x:Name="AddKeyButton" Grid.Column="1" Margin="8,0,0,0" Content="Schlüssel hinzufügen …"
+                                    Click="KeyAdd_Click" />
+                        </Grid>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Text="Windows fragt zweimal nach dem Schlüssel (anlegen, Geheimnis abholen) und nach seiner PIN. Ist noch keine PIN gesetzt, legt Windows eine an." />
+                        <TextBlock x:Name="KeysStatus" Margin="0,10,0,0" TextWrapping="Wrap" Visibility="Collapsed" />
+
+                        <TextBlock Style="{StaticResource Heading}" Text="Entsperren mit" />
+                        <ListBox x:Name="ModeChips" Style="{StaticResource ChipList}" SelectionChanged="ModeChips_SelectionChanged">
+                            <ListBoxItem Tag="1">Passwort oder Schlüssel</ListBoxItem>
+                            <ListBoxItem Tag="2">Passwort und Schlüssel (2-Faktor)</ListBoxItem>
+                        </ListBox>
+                        <TextBlock x:Name="ModeHint" Style="{StaticResource Secondary}" Margin="0,4,0,0" />
+                        <Border x:Name="SingleKeyWarning" Margin="0,12,0,0" Padding="14,12" CornerRadius="8"
+                                Background="{DynamicResource WarningBgBrush}" Visibility="Collapsed">
+                            <TextBlock Foreground="{DynamicResource WarningTextBrush}" TextWrapping="Wrap"
+                                       Text="Im 2-Faktor-Modus gibt es ohne Schlüssel keinen Zugang zum Verlauf – auch nicht mit dem Passwort. Registriere einen Ersatzschlüssel und bewahre ihn sicher auf." />
+                        </Border>
+                        <TextBlock Style="{StaticResource Hint}" Margin="0,14,0,0"
+                                   Text="Änderungen in diesem Bereich werden sofort gespeichert." />
                     </StackPanel>
 
                     <!-- ============ Vertraulich ============ -->

@@ -13,7 +13,7 @@
     <RootNamespace>ClipSec</RootNamespace>
     <Product>ClipSec</Product>
     <Description>Gesicherter Zwischenablage-Verlauf für Windows</Description>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <!-- WinForms-DPI-Hinweis betrifft nur WinForms-Apps; hier steuert das Manifest (PerMonitorV2) WPF. -->
     <NoWarn>$(NoWarn);WFAC010</NoWarn>
   </PropertyGroup>

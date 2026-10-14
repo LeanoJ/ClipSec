@@ -3,6 +3,18 @@
 Alle wichtigen Änderungen an ClipSec. Format nach [Keep a Changelog](https://keepachangelog.com/de/1.1.0/),
 Versionierung nach [SemVer](https://semver.org/lang/de/).
 
+## [1.2.0] – 2026-10-14
+
+### Neu
+- **YubiKey / FIDO2-Sicherheitsschlüssel** (hmac-secret über die Windows-WebAuthn-API, ohne Adminrechte):
+  - „Passwort oder Schlüssel“: Berühren + Schlüssel-PIN entsperrt allein
+  - „Passwort und Schlüssel“: 2-Faktor, keines von beiden reicht allein
+  - mehrere Schlüssel, Testfunktion, Umschalten ohne erneute Registrierung
+- Tresor-Format 2 mit Schlüsselfächern; bestehende Tresore werden beim nächsten Entsperren automatisch übernommen
+
+### Behoben
+- Erstes Win+V blieb unsichtbar, wenn ClipSec von einem anderen Programm versteckt gestartet wurde
+
 ## [1.1.0] – 2026-10-14
 
 ### Neu
